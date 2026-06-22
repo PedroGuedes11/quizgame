@@ -149,6 +149,58 @@ export const getPlayedQuizzesByStudentId = async (studentId) => {
     return result.rows;
 };
 
+export const getLeaderboardGeneral = async (limit = 10) => {
+    const result = await db.query(
+        `SELECT s.id_student, s.username, s.global_points,
+                COUNT(DISTINCT pq.id_quiz) AS quizzes_completed
+           FROM students s
+           LEFT JOIN played_quizzes pq ON pq.id_student = s.id_student
+          GROUP BY s.id_student, s.username, s.global_points
+          ORDER BY s.global_points DESC, quizzes_completed DESC, s.username ASC
+          LIMIT $1`,
+        [limit]
+    );
+    return result.rows;
+};
+
+export const getQuizSubjects = async () => {
+    const result = await db.query(
+        `SELECT DISTINCT subject FROM quizzes ORDER BY subject`
+    );
+    return result.rows.map((row) => row.subject);
+};
+
+export const getLeaderboardBySubject = async (subject, limit = 10) => {
+    const result = await db.query(
+        `SELECT s.id_student, s.username,
+                COALESCE(SUM(pq.total_points), 0) AS subject_points,
+                COUNT(DISTINCT pq.id_quiz) AS quizzes_completed
+           FROM students s
+           LEFT JOIN played_quizzes pq ON pq.id_student = s.id_student
+           LEFT JOIN quizzes q ON q.id_quiz = pq.id_quiz AND q.subject = $1
+          GROUP BY s.id_student, s.username
+          ORDER BY subject_points DESC, quizzes_completed DESC, s.username ASC
+          LIMIT $2`,
+        [subject, limit]
+    );
+    return result.rows;
+};
+
+export const getLeaderboardQuizzesCompleted = async (limit = 10) => {
+    const result = await db.query(
+        `SELECT s.id_student, s.username,
+                COUNT(DISTINCT pq.id_quiz) AS quizzes_completed,
+                COALESCE(SUM(pq.total_points), 0) AS total_points
+           FROM students s
+           LEFT JOIN played_quizzes pq ON pq.id_student = s.id_student
+          GROUP BY s.id_student, s.username
+          ORDER BY quizzes_completed DESC, total_points DESC, s.username ASC
+          LIMIT $1`,
+        [limit]
+    );
+    return result.rows;
+};
+
 // Student "Do after" quizzes management
 export const insertDoAfterQuizForStudent = async (studentId, quizId) => {
     const result = await db.query(

@@ -6,6 +6,12 @@ import {
     incrementEnergyById,
     decrementEnergyById
  } from "../model/userQueries.js";
+import {
+    getLeaderboardGeneral as getLeaderboardGeneralQuery,
+    getQuizSubjects,
+    getLeaderboardBySubject as getLeaderboardBySubjectQuery,
+    getLeaderboardQuizzesCompleted as getLeaderboardQuizzesCompletedQuery
+} from "../model/quizQueries.js";
 
 const MAX_ENERGY = 5;
 const ENERGY_REGEN_SECONDS = 10 * 60; // 10 minutes per energy point
@@ -181,14 +187,47 @@ export const incrementEnergy = async (req, res) => {
     }
 };
 
-export const getLeaderboard = async (req, res) => {
+export const getLeaderboardGeneral = async (req, res) => {
     try {
-        const result = await db.query(
-            "SELECT username, global_points FROM students ORDER BY global_points DESC LIMIT 10"
-        );
-        res.json(result.rows);
+        const leaderboard = await getLeaderboardGeneralQuery(20);
+        res.json(leaderboard);
     } catch (error) {
-        console.error("Get leaderboard error:", error);
+        console.error("Get leaderboard general error:", error);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+};
+
+export const getLeaderboardSubjects = async (req, res) => {
+    try {
+        const subjects = await getQuizSubjects();
+        res.json(subjects);
+    } catch (error) {
+        console.error("Get leaderboard subjects error:", error);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+};
+
+export const getLeaderboardBySubject = async (req, res) => {
+    try {
+        const subject = req.query.subject;
+        if (!subject) {
+            return res.status(400).json({ error: "O parâmetro subject é obrigatório." });
+        }
+
+        const leaderboard = await getLeaderboardBySubjectQuery(subject, 20);
+        res.json(leaderboard);
+    } catch (error) {
+        console.error("Get leaderboard by subject error:", error);
+        res.status(500).json({ error: "Erro interno do servidor." });
+    }
+};
+
+export const getLeaderboardQuizzesCompleted = async (req, res) => {
+    try {
+        const leaderboard = await getLeaderboardQuizzesCompletedQuery(20);
+        res.json(leaderboard);
+    } catch (error) {
+        console.error("Get leaderboard quizzes completed error:", error);
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 };

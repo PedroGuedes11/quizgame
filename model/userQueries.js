@@ -20,16 +20,15 @@ export const incrementEnergyById = async (studentId) => {
     const result = await db.query(
         "UPDATE students SET energy = LEAST(energy + 1, 5), last_update_energy = NOW() WHERE id_student = $1 RETURNING energy", 
         [studentId]
-    );
-    return result.rows[0].energy;
+    );    if (result.rows.length === 0) {
+        return null;
+    }    return result.rows[0].energy;
 };
 
-export const decrementEnergyById = (studentId) => {
-    return async () => {
-        const result = await db.query(
-            "UPDATE students SET energy = GREATEST(energy - 1, 0), last_update_energy = NOW() WHERE id_student = $1 RETURNING energy",
-            [studentId]
-        );
-        return result.rows[0].energy;
-    };
+export const decrementEnergyById = async (studentId) => {
+    const result = await db.query(
+        "UPDATE students SET energy = GREATEST(energy - 1, 0), last_update_energy = NOW() WHERE id_student = $1 RETURNING energy",
+        [studentId]
+    );
+    return result.rows[0].energy;
 };

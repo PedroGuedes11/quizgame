@@ -1,6 +1,5 @@
 // Main application entry point - Frontend orchestrator
 import { AuthModule } from './modules/auth.js';
-import { QuizModule } from './modules/quiz.js';
 import { renderHomepage } from './homepage.js';
 import { renderAbout } from './about.js';
 import { renderRules } from './rules.js';
@@ -9,6 +8,7 @@ import { renderTeacherDashboard } from './dashboard_teacher.js';
 import { renderTeacherQuizzes } from './teacher_quizzes.js';
 import { renderRegisterLogin } from './register_login.js';
 import { renderQuizList } from './quiz_list.js';
+import { renderQuiz } from './quiz.js';
 import { renderRanking } from './ranking.js';
 import { renderMenu } from './components/Menu.js';
 import { DOMUtils } from './utils/dom.js';
@@ -39,6 +39,7 @@ class AppOrchestrator {
             'dashboard_teacher.html': renderTeacherDashboard,
             'register_login.html': renderRegisterLogin,
             'teacher_quizzes.html': renderTeacherQuizzes,
+            'quiz.html': renderQuiz,
             'quiz_list.html': renderQuizList,
             'ranking.html': renderRanking
         };
@@ -48,6 +49,12 @@ class AppOrchestrator {
     /**
      * Detecta a página atual a partir da URL
      */
+    getPageFromPath(path) {
+        const [pathname] = path.split('?');
+        const filename = pathname.split('/').pop() || 'index.html';
+        return filename;
+    }
+
     detectCurrentPage() {
         const pathname = window.location.pathname;
         const filename = pathname.split('/').pop() || 'index.html';
@@ -210,7 +217,7 @@ class AppOrchestrator {
         }
 
         const url = new URL(path, window.location.origin);
-        const targetPage = url.pathname.split('/').pop() || 'index.html';
+        const targetPage = this.getPageFromPath(url.pathname + url.search);
 
         if (targetPage === this.currentPage && url.search === new URL(window.location.href).search) {
             return;
@@ -239,21 +246,21 @@ class AppOrchestrator {
             return false;
         }
 
-        if (token && this.currentPage === 'dashboard_teacher.html' && userType !== 'teacher') {
+        if (token && this.currentPage === 'dashboard_teacher.html' && userType === 'student') {
             window.location.href = '/html/dashboard_student.html';
             return false;
         }
 
-        if (token && this.currentPage === 'teacher_quizzes.html' && userType !== 'teacher') {
+        if (token && this.currentPage === 'teacher_quizzes.html' && userType === 'student') {
             window.location.href = '/html/dashboard_student.html';
             return false;
         }
 
-        if (token && this.currentPage === 'dashboard_student.html' && userType !== 'student') {
+        if (token && this.currentPage === 'dashboard_student.html' && userType === 'teacher') {
             window.location.href = '/html/dashboard_teacher.html';
             return false;
         }
-        if (token && this.currentPage === 'quiz.html' && userType !== 'student') {
+        if (token && this.currentPage === 'quiz.html' && userType === 'teacher') {
             window.location.href = '/html/dashboard_teacher.html';
             return false;
         }
@@ -267,30 +274,6 @@ class AppOrchestrator {
     initAuth() {
         console.log('[App] Inicializando módulo de autenticação');
         this.currentModule = new AuthModule();
-    }
-
-    /**
-     * Inicializa módulo de quiz
-     */
-
-    initQuiz() {
-        console.log('[App] Inicializando módulo de quiz');
-        if (!this.isUserAuthenticated()) {
-            console.warn('[App] Usuário não autenticado. Redirecionando para login.');
-            window.location.href = '/html/register_login.html';
-            return;
-        }
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const quizId = urlParams.get('quizId');
-
-        if (!quizId) {
-            console.error('[App] ID do quiz não encontrado na URL');
-            alert('ID do quiz não encontrado');
-            window.location.href = '/html/quiz_list.html';
-            return;
-        }
-        this.currentModule = new QuizModule(quizId);
     }
 
     /**
@@ -354,7 +337,7 @@ class AppOrchestrator {
      */
 
     async handleRoute(path, isAjax) {
-        this.currentPage = path.split('/').pop() || 'index.html';
+        this.currentPage = this.getPageFromPath(path);
 
         if (!this.applyRouteGuards()) {
             return;
@@ -368,37 +351,37 @@ class AppOrchestrator {
             }
         }
 
-        this.initPage();
+        await this.initPage();
     }
 
     /**
      * Inicializa a página atual
      */
-    initPage() {
+    async initPage() {
         this.renderMenu();
         console.log(`[App] Inicializando página: ${this.currentPage}`);
 
         switch (this.currentPage) {
             case 'register_login.html':
-                this.renderPageContent();
+                await this.renderPageContent();
                 this.initAuth();
                 break;
             case 'quiz.html':
-                this.initQuiz();
+                await this.renderPageContent();
                 break;
             case 'dashboard_student.html':
-                this.renderPageContent();
+                await this.renderPageContent();
                 this.initDashboard();
                 break;
             case 'dashboard_teacher.html':
-                this.renderPageContent();
+                await this.renderPageContent();
                 this.initDashboard();
                 break;
             case 'teacher_quizzes.html':
-                this.renderPageContent();
+                await this.renderPageContent();
                 break;
             case 'quiz_list.html':
-                this.renderPageContent();
+                await this.renderPageContent();
                 this.initQuizList();
                 break
             case 'ranking.html':
@@ -406,7 +389,7 @@ class AppOrchestrator {
             case 'rules.html':
             case 'homepage.html':
             case 'index.html':
-                this.renderPageContent();
+                await this.renderPageContent();
                 break;
             default:
                 this.initHomepage();
@@ -427,8 +410,8 @@ class AppOrchestrator {
             const html = await response.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const fetchedMainbox = doc.querySelector('#main');
-            const currentMainbox = document.querySelector('#main');
+            const fetchedMainbox = doc.querySelector('main');
+            const currentMainbox = document.querySelector('main');
 
             if (!fetchedMainbox || !currentMainbox) {
                 console.error('[App] Estrutura de página inválida para AJAX');
@@ -436,6 +419,9 @@ class AppOrchestrator {
             }
 
             currentMainbox.innerHTML = fetchedMainbox.innerHTML;
+            currentMainbox.id = fetchedMainbox.id || currentMainbox.id;
+            currentMainbox.className = fetchedMainbox.className || currentMainbox.className;
+
             const title = doc.querySelector('title')?.textContent;
             if (title) {
                 document.title = title;
@@ -451,10 +437,10 @@ class AppOrchestrator {
     /**
      * Renderiza a página estática ou lista com renderizador definido
      */
-    renderPageContent() {
+    async renderPageContent() {
         const renderer = this.pageRenderers[this.currentPage];
         if (renderer) {
-            renderer();
+            await renderer();
         }
     }
 

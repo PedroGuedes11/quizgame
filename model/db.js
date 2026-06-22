@@ -79,9 +79,12 @@ export const createTables = async () => {
             id_played     BIGSERIAL PRIMARY KEY,
             id_student    BIGINT NOT NULL,
             id_quiz       BIGINT NOT NULL,
+            correct_answers INTEGER NOT NULL DEFAULT 0,
+            time_seconds INTEGER NOT NULL DEFAULT 0,
             started_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
             finished_at   TIMESTAMP WITH TIME ZONE,
             total_points  INTEGER DEFAULT 0,
+            points        INTEGER DEFAULT 0,
 
             CONSTRAINT fk_played_student
                 FOREIGN KEY (id_student)
@@ -133,12 +136,35 @@ export const createTables = async () => {
                 REFERENCES quizzes (id_quiz)
                 ON UPDATE CASCADE ON DELETE CASCADE
         );`
-    )};
+    );
+
+    await db.query(`
+        ALTER TABLE played_quizzes ADD COLUMN IF NOT EXISTS correct_answers INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE played_quizzes ADD COLUMN IF NOT EXISTS time_seconds INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE played_quizzes ADD COLUMN IF NOT EXISTS points INTEGER NOT NULL DEFAULT 0;
+    `);
+
+    await db.query(`
+        CREATE OR REPLACE FUNCTION public.calc_points()
+         RETURNS trigger
+         LANGUAGE plpgsql
+        AS $function$
+        BEGIN
+            IF NEW.correct_answers IS NULL OR NEW.time_seconds IS NULL OR NEW.time_seconds = 0 THEN
+                NEW.points := COALESCE(NEW.total_points, 0);
+            ELSE
+                NEW.points := (NEW.correct_answers * 100) / NEW.time_seconds;
+            END IF;
+            RETURN NEW;
+        END;
+        $function$;
+    `);
 
     // Ensure profile_photo column exists for students and teachers (default neutral image)
     await db.query(`
         ALTER TABLE students ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(255) DEFAULT 'default.svg';
         ALTER TABLE teachers ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(255) DEFAULT 'default.svg';
     `);
+};
 
 export default db;

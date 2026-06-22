@@ -11,7 +11,7 @@ const QUESTION_TEMPLATE = (questionIndex) => `
             <textarea id="question-text-${questionIndex}" class="question-text" rows="3" placeholder="Digite a pergunta"></textarea>
         </div>
         <div class="alternatives-group">
-            ${['A', 'B', 'C', 'D'].map((label, altIndex) => `
+            ${['A', 'B', 'C', 'D', 'E'].map((label, altIndex) => `
                 <div class="alt-row">
                     <span class="alt-label">${label}</span>
                     <input type="text" class="alt-text" placeholder="Texto da alternativa ${label}" />
@@ -117,6 +117,11 @@ function addQuestionCard() {
     }
 
     const currentCount = container.querySelectorAll('.question-card').length;
+    if (currentCount >= 10) {
+        showFeedback('O quiz só pode conter exatamente 10 questões.', true);
+        return;
+    }
+
     const nextIndex = currentCount + 1;
     container.insertAdjacentHTML('beforeend', QUESTION_TEMPLATE(nextIndex));
 }
@@ -152,6 +157,11 @@ async function handleQuizSubmit() {
 
         if (!questionText) {
             showFeedback(`Digite o texto da questão ${index + 1}.`, true);
+            return;
+        }
+
+        if (alternatives.length !== 5) {
+            showFeedback(`Cada questão deve ter exatamente 5 alternativas.`, true);
             return;
         }
 

@@ -7,7 +7,11 @@ class ApiService {
     async request(endpoint, method = "GET", body = null) {
         const token = localStorage.getItem("token");
         const isFormData = body instanceof FormData;
-        const headers = isFormData ? {} : { "Content-Type": "application/json" };
+        const headers = {};
+
+        if (!isFormData && body != null) {
+            headers["Content-Type"] = "application/json";
+        }
 
         if (token) {
             headers.Authorization = `Bearer ${token}`;
@@ -18,6 +22,7 @@ class ApiService {
                 method,
                 headers,
                 body: isFormData ? body : body ? JSON.stringify(body) : null,
+                cache: 'no-store',
             });
 
             const contentType = response.headers.get("content-type") || "";
@@ -26,6 +31,9 @@ class ApiService {
 
             if (!response.ok) {
                 const errorMessage = responseBody?.error || responseBody?.message || response.statusText;
+                if (response.status === 401) {
+                    this.handleUnauthorized(errorMessage);
+                }
                 throw new Error(`HTTP ${response.status}: ${errorMessage}`);
             }
 
@@ -33,6 +41,15 @@ class ApiService {
         } catch (error) {
             console.error("API request error:", error);
             throw error;
+        }
+    }
+
+    handleUnauthorized(message) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userType');
+        console.warn('[ApiService] Unauthorized:', message);
+        if (window.location.pathname !== '/html/register_login.html') {
+            window.location.replace('/html/register_login.html');
         }
     }
 

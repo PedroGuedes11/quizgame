@@ -35,8 +35,8 @@ export const createQuiz = async (req, res) => {
     const { subject, theme, questions } = req.body;
     const teacherId = req.user.id_teacher;
 
-    if (!subject || !theme || !Array.isArray(questions) || questions.length === 0) {
-        return res.status(400).json({ error: "Dados do quiz incompletos." });
+    if (!subject || !theme || !Array.isArray(questions) || questions.length !== 10) {
+        return res.status(400).json({ error: "O quiz deve conter exatamente 10 questões." });
     }
 
     try {
@@ -46,8 +46,8 @@ export const createQuiz = async (req, res) => {
         const createdQuizId = quiz.id_quiz;
 
         for (const question of questions) {
-            if (!question.questionText || !Array.isArray(question.alternatives) || question.alternatives.length < 2) {
-                throw new Error("Questão inválida.");
+            if (!question.questionText || !Array.isArray(question.alternatives) || question.alternatives.length !== 5) {
+                throw new Error("Cada questão deve ter exatamente 5 alternativas.");
             }
 
             const createdQuestion = await insertQuestion(createdQuizId, question.questionText, question.questionOrder);
@@ -76,17 +76,23 @@ export const getQuizData = async (req, res) => {
         const quizId = req.params.quizId;
         const quizMetadata = await getQuizMetadataByIdQuiz(quizId);
         const quizQuestions = await getQuizQuestionsByIdQuiz(quizId);
+        const questionsWithAlternatives = [];
+
+        for (let question of quizQuestions) {
+            const quizAlternatives = await getQuestionAlternativesByIdQuestion(question.id_question);
+            questionsWithAlternatives.push({
+                ...question,
+                alternatives: quizAlternatives
+            });
+        }
+
         const quizData = {
+            quizId: quizMetadata.id_quiz,
             metadata: quizMetadata,
             teacher_username: await getTeacherNameByIdTeacher(quizMetadata.teacher_id),
-            questions: quizQuestions,
-            options: []
+            questions: questionsWithAlternatives
         };
-        for (let question of quizQuestions) {
-            let questionId = question.id_question;
-            let quizAlternatives = await getQuestionAlternativesByIdQuestion(questionId);
-            quizData.options.push(quizAlternatives);
-        }
+
         return res.status(200).json(quizData);
     }
     catch (error) {
@@ -97,22 +103,45 @@ export const getQuizData = async (req, res) => {
 export const submitQuiz = async (req, res) => {
     const { quizId, answers, correctCount, timePoints, startedAt, finishedAt } = req.body;
     const studentId = req.user.id_student;
-    const totalPoints = correctCount * timePoints;
+
+    if (!Array.isArray(answers)) {
+        return res.status(400).json({ error: "Dados de respostas inválidos." });
+    }
+
+    const validAnswers = answers.filter(
+        (answer) => answer && answer.questionId != null && answer.alternativeId != null
+    );
+
+    const totalPoints = Number.isFinite(correctCount) && Number.isFinite(timePoints)
+        ? correctCount * timePoints
+        : 0;
 
     try {
         await db.query("BEGIN");
 
+        const previousBestRes = await db.query(
+            "SELECT MAX(total_points) AS best_points FROM played_quizzes WHERE id_student = $1 AND id_quiz = $2",
+            [studentId, quizId]
+        );
+        const previousBestPoints = previousBestRes.rows[0].best_points || 0;
+        const pointsDelta = Math.max(0, totalPoints - previousBestPoints);
+
         const playedResult = await db.query(
-            "INSERT INTO played_quizzes (id_student, id_quiz, total_points, started_at, finished_at) VALUES ($1, $2, $3, $4, $5) RETURNING id_played",
-            [studentId, quizId, totalPoints, startedAt, finishedAt]
+            "INSERT INTO played_quizzes (id_student, id_quiz, correct_answers, time_seconds, total_points, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id_played",
+            [studentId, quizId, correctCount, timePoints, totalPoints, startedAt, finishedAt]
         );
         const playedId = playedResult.rows[0].id_played;
 
-        for (const answer of answers) {
+        for (const answer of validAnswers) {
             const altResult = await db.query(
                 "SELECT is_correct FROM alternatives WHERE id_alternative = $1",
                 [answer.alternativeId]
             );
+
+            if (altResult.rows.length === 0) {
+                throw new Error(`Alternativa não encontrada: ${answer.alternativeId}`);
+            }
+
             const isCorrect = altResult.rows[0].is_correct;
 
             await db.query(
@@ -121,9 +150,25 @@ export const submitQuiz = async (req, res) => {
             );
         }
 
+        // Update student's global points only with the excess over the previous best score
+        if (Number.isFinite(pointsDelta) && pointsDelta > 0) {
+            await db.query(
+                "UPDATE students SET global_points = global_points + $1 WHERE id_student = $2",
+                [pointsDelta, studentId]
+            );
+        }
+
+        // Fetch updated global_points to return to client
+        const gpRes = await db.query(
+            "SELECT global_points FROM students WHERE id_student = $1",
+            [studentId]
+        );
+        const updatedGlobalPoints = gpRes.rows[0] ? gpRes.rows[0].global_points : null;
+
         await db.query("COMMIT");
 
-        res.json({ score, correctCount });
+        const score = totalPoints;
+        res.json({ score, correctCount, pointsDelta, global_points: updatedGlobalPoints });
     } catch (error) {
         await db.query("ROLLBACK");
         console.error("Submit quiz error:", error);
@@ -191,9 +236,9 @@ export const getPlayedQuizzes = async (req, res) => {
 
         const userId = req.params.userId;
 
-        const result = await getPlayedQuizzesByStudentId(userId);
+        const played = await getPlayedQuizzesByStudentId(userId);
 
-        res.json({ played: result.rows });
+        res.json({ played });
     } catch (error) {
         console.error('Get played quizzes error:', error);
         res.status(500).json({ error: 'Erro interno do servidor.' });

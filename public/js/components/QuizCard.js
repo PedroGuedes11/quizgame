@@ -1,4 +1,5 @@
 import { DOMUtils } from '../utils/dom.js';
+import { apiService } from '../services/api.js';
 
 export function renderQuizCard(quiz, userId) {
   
@@ -16,13 +17,17 @@ export function renderQuizCard(quiz, userId) {
   //Cria botao para jogar o quiz
   const playButton = DOMUtils.createElement('button', { class: 'play-quiz-btn' }, 'Jogar');
   playButton.addEventListener('click', () => {
-    window.location.href = `/html/quiz.html?id=${quiz.id_quiz}`;
+    window.location.href = `/html/quiz.html?quizId=${quiz.id_quiz}`;
   });
 
   //Cria botao para marcar como fazer mais tarde
   const doAfterButton = DOMUtils.createElement('button', { class: 'do-after-quiz-btn' }, 'Fazer mais tarde');
-  doAfterButton.addEventListener('click', () => {
-    await apiService.post('api/quiz/do-after',{ quizId: quiz.id_quiz , userId: userId}); 
+  doAfterButton.addEventListener('click', async () => {
+    try {
+      await apiService.post('/api/quiz/do-after', { quizId: quiz.id_quiz, userId });
+    } catch (error) {
+      console.error('Erro ao marcar quiz para fazer depois:', error);
+    }
   });
 
   container.appendChild(header);

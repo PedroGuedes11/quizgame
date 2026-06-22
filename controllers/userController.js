@@ -140,10 +140,32 @@ export const updateProfile = async (req, res) => {
 export const decrementEnergy = async (req, res) => {
     try {
         const userId = req.user.id_student;
-        await decrementEnergy(userId)
-        
-        res.json({ message: "Energy decremented" });
+        const result = await db.query(
+            "SELECT energy FROM students WHERE id_student = $1",
+            [userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Usuário não encontrado." });
+        }
+
+        const currentEnergy = result.rows[0].energy;
+        if (currentEnergy <= 0) {
+            return res.status(400).json({ error: "Energia insuficiente para iniciar o quiz." });
+        }
+
+        const updateResult = await db.query(
+            "UPDATE students SET energy = GREATEST(energy - 1, 0), last_update_energy = NOW() WHERE id_student = $1 RETURNING energy",
+            [userId]
+        );
+
+        if (updateResult.rows.length === 0) {
+            return res.status(500).json({ error: "Falha ao atualizar energia." });
+        }
+
+        res.json({ energy: updateResult.rows[0].energy });
     } catch (error) {
+        console.error("Error decrementing energy:", error);
         res.status(500).json({ error: "Erro interno do servidor." });
     }
 };

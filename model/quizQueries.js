@@ -139,10 +139,11 @@ export const deleteQuizByQuizId = async (quizId, teacherId) => {
 // Student played quizzes management
 export const getPlayedQuizzesByStudentId = async (studentId) => {
     const result = await db.query(
-        `SELECT id_played, id_quiz, total_points, started_at, finished_at
-           FROM played_quizzes 
-           WHERE id_student = $1
-           ORDER BY started_at DESC`,
+        `SELECT pq.id_played, pq.id_quiz, q.subject, q.theme, pq.total_points, pq.started_at, pq.finished_at
+           FROM played_quizzes pq
+           JOIN quizzes q ON q.id_quiz = pq.id_quiz
+           WHERE pq.id_student = $1
+           ORDER BY pq.started_at DESC`,
         [studentId]
     );
     return result.rows;

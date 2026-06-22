@@ -20,12 +20,14 @@ export function renderQuestionCard(question, currentIndex, selectedValue) {
       value: String(alt.id_alternative),
     };
 
-    if (selectedValue === alt.id_alternative) {
+    if (String(selectedValue) === String(alt.id_alternative)) {
       inputAttrs.checked = 'checked';
     }
 
     const input = DOMUtils.createElement('input', inputAttrs);
-    const span = DOMUtils.createElement('span', {}, `${alt.label}) ${alt.alternative_text}`);
+    const alternativeText = alt.text || alt.alternative_text || '';
+    const labelText = alt.label ? `${alt.label}) ${alternativeText}` : alternativeText;
+    const span = DOMUtils.createElement('span', {}, labelText);
 
     label.appendChild(input);
     label.appendChild(span);
@@ -34,6 +36,5 @@ export function renderQuestionCard(question, currentIndex, selectedValue) {
 
   container.appendChild(header);
   container.appendChild(alternatives);
-
   return container;
 }

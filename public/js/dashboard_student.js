@@ -2,12 +2,53 @@ import { DOMUtils } from './utils/dom.js';
 import { apiService } from './services/api.js';
 
 const MAX_ENERGY = 5;
+let energyCountdownInterval = null;
 
 function formatSeconds(seconds) {
     const hrs = Math.floor(seconds / 3600).toString().padStart(2, '0');
     const mins = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
     const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
     return `${hrs}:${mins}:${secs}`;
+}
+
+function clearEnergyCountdown() {
+    if (energyCountdownInterval) {
+        clearInterval(energyCountdownInterval);
+        energyCountdownInterval = null;
+    }
+}
+
+function updateEnergyTimerText(seconds) {
+    const timerElement = document.querySelector('#energy-timer');
+    if (!timerElement) return;
+
+    if (seconds <= 0) {
+        timerElement.textContent = 'Energia completa';
+        return;
+    }
+
+    timerElement.textContent = `Próximo ponto em ${formatSeconds(seconds)}`;
+}
+
+function startEnergyCountdown(initialSeconds) {
+    clearEnergyCountdown();
+
+    let seconds = Number(initialSeconds);
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+        updateEnergyTimerText(0);
+        return;
+    }
+
+    updateEnergyTimerText(seconds);
+    energyCountdownInterval = setInterval(() => {
+        seconds -= 1;
+        if (seconds <= 0) {
+            clearEnergyCountdown();
+            updateEnergyTimerText(0);
+            return;
+        }
+        updateEnergyTimerText(seconds);
+    }, 1000);
 }
 
 async function fetchUser() {
@@ -40,6 +81,10 @@ document.addEventListener('click', async (e) => {
     if (e.target && e.target.id === 'remove-do-after') {
         const quizId = e.target.dataset.quizId;
         const user = await fetchUser();
+        if (!user) {
+            window.location.href = '/html/register_login.html';
+            return;
+        }
         try {
             await apiService.delete(`/api/quiz/do-after/${ user.id_student }/${ quizId }`);
         } catch (err) {
@@ -69,10 +114,28 @@ function renderPlayedList(played) {
 
 export const renderStudentDashboard = async () => {
     const user = await fetchUser();
-    const photo = user?.profile_photo ? `../img/profiles/${user.profile_photo}` : '../img/nophotouser.png';
+    if (!user) {
+        window.location.href = '/html/register_login.html';
+        return;
+    }
 
+    const photo = user.profile_photo ? `../img/profiles/${user.profile_photo}` : '../img/nophotouser.png';
     const energyText = `${user.energy}/${MAX_ENERGY}`;
-    const timerText = user?.next_energy_seconds ? `Próximo ponto em ${formatSeconds(user.next_energy_seconds)}` : 'Energia já está no máximo';
+    const cachedPoints = (() => {
+        try { return parseInt(localStorage.getItem('global_points'), 10); } catch (e) { return null; }
+    })();
+    const serverPoints = (typeof user.global_points !== 'undefined' && user.global_points !== null)
+        ? Number(user.global_points)
+        : null;
+    const displayPoints = Number.isFinite(serverPoints)
+        ? serverPoints
+        : (Number.isFinite(cachedPoints) ? cachedPoints : 0);
+
+    if (Number.isFinite(serverPoints)) {
+        try { localStorage.setItem('global_points', String(serverPoints)); } catch (e) { }
+    }
+
+    const timerText = user.next_energy_seconds ? `Próximo ponto em ${formatSeconds(user.next_energy_seconds)}` : 'Energia já está no máximo';
 
     const html = `
         <section id="dashboard-container">
@@ -93,7 +156,7 @@ export const renderStudentDashboard = async () => {
                         </div>
                         <div class="badge">
                             <img src="../img/badge.png" alt="badge">
-                            <strong>Global points: ${user.global_points}</strong>
+                            <strong>Global points: ${displayPoints}</strong>
                         </div>
                     </div>
 
@@ -101,7 +164,7 @@ export const renderStudentDashboard = async () => {
                         <div class="data-item">Usuário: ${user.username}</div>
                         <div class="data-item">Email: ${user.email}</div>
                         <div class="data-item">Energia disponível: ${energyText}<img src="../img/energy.png" alt="energy" width="50"></div>
-                        <div class="data-item">${user.energy < MAX_ENERGY ? timerText : 'Energia completa'}</div>
+                        <div class="data-item" id="energy-timer">${user.energy < MAX_ENERGY ? timerText : 'Energia completa'}</div>
                     </div>
 
                     <div id="edit-profile">
@@ -134,7 +197,7 @@ export const renderStudentDashboard = async () => {
 
                 <div id="my-quizzes" class="carrousel-item">
                     <h3>Quizzes realizados</h3>
-                    
+                    <div id="played-list-container"></div>
                 </div>  
 
                 <div id="do-after-quizzes" class="carrousel-item">
@@ -151,15 +214,21 @@ export const renderStudentDashboard = async () => {
     `;
 
     DOMUtils.setInnerHTML('#dashboard-content', html);
+    if (user.energy < MAX_ENERGY && Number.isFinite(user.next_energy_seconds) && user.next_energy_seconds > 0) {
+        startEnergyCountdown(user.next_energy_seconds);
+    } else {
+        clearEnergyCountdown();
+    }
+
     (async () => {
         try {
             const playedResp = await apiService.get(`/api/quiz/played-quizzes/${user.id_student}`);
-            const container = document.querySelector('#my-quizzes');
-            if (container) container.innerHTML += renderPlayedList(playedResp.played);
+            const container = document.querySelector('#played-list-container');
+            if (container) container.innerHTML = renderPlayedList(playedResp.played);
         } catch (err) {
             console.error('Erro ao buscar quizzes realizados:', err);
             const container = document.querySelector('#my-quizzes');
-            if (container) container.innerHTML += '<p>Erro ao carregar histórico.</p>';
+            if (container) container.innerHTML = '<p>Erro ao carregar histórico.</p>';
         }
     })();
 

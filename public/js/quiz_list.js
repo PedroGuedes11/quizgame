@@ -115,7 +115,7 @@ function renderQuizCards(quizzes) {
             <p>${quiz.theme}</p>
             <p class="quiz-meta">Professor: ${quiz.teacher_username || 'Desconhecido'}</p>
             <p class="quiz-meta">Perguntas: ${quiz.question_count}</p>
-            <a href="/html/quiz.html?id=${quiz.id_quiz}"><button>Iniciar</button></a>
+            <a href="/html/quiz.html?quizId=${quiz.id_quiz}"><button>Iniciar</button></a>
             <button id="do-after-btn">Fazer mais tarde</button>
         </article>
     `).join('');
@@ -128,8 +128,12 @@ function renderQuizCards(quizzes) {
             if (!quizId) {
                 console.error('Quiz ID não encontrado para marcar como "Fazer mais tarde".');
                 return;
-            };
+            }
             const user = await fetchUser();
+            if (!user) {
+                window.location.href = '/html/register_login.html';
+                return;
+            }
             await apiService.post('/api/quiz/do-after', { userId: user.id_student, quizId });
         });
     });

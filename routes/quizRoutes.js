@@ -19,7 +19,7 @@ import { validateToken, verifyUser } from "../middlewares/authMiddlewares.js";
 const router = express.Router();
 
 // general quiz routes
-router.get("/quiz/:quizId", validateToken, verifyUser, getQuizData);
+router.get("/get-quiz-data/:quizId", validateToken, verifyUser, getQuizData);
 router.post("/submit", validateToken, verifyUser, submitQuiz);
 router.get("/search", validateToken, verifyUser, searchQuizzes);
 

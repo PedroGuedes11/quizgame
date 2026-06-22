@@ -13,7 +13,12 @@ async function fetchUser() {
 
 export const renderTeacherDashboard = async () => {
     const user = await fetchUser();
-    const photo = user?.profile_photo ? `../img/profiles/${user.profile_photo}` : '../img/teacher.png';
+    if (!user) {
+        window.location.href = '/html/register_login.html';
+        return;
+    }
+
+    const photo = user.profile_photo ? `../img/profiles/${user.profile_photo}` : '../img/teacher.png';
 
     const html = `
         <section id="dashboard-container">

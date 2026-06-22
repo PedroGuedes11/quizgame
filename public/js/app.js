@@ -12,7 +12,6 @@ import { renderQuiz } from './quiz.js';
 import { renderRanking } from './ranking.js';
 import { renderMenu } from './components/Menu.js';
 import { DOMUtils } from './utils/dom.js';
-import { ValidationUtils } from "./utils/validation.js";
 
 
 /**

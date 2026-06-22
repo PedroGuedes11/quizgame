@@ -43,14 +43,23 @@ Um jogo de quiz desenvolvido com Node.js, Express, PostgreSQL, bcrypt e JavaScri
    - Baixe e instale do site oficial: https://www.postgresql.org/download/windows/
    - Use configurações padrão (porta 5432, senha 'postgres' para o usuário postgres)
 
-4. Configure o banco de dados PostgreSQL e atualize o arquivo `.env`:
+4. Configure o arquivo de ambiente a partir de um modelo e atualize os valores de acordo com sua instalação:
+   - Crie um arquivo `.env` a partir de `.env.example`
+   - Atualize os valores com suas credenciais reais
+   ```bash
+   copy .env.example .env
    ```
+
+   Exemplo de variáveis de ambiente:
+   ```bash
    DATABASE_URL=postgresql://postgres:postgres@localhost:5432/quizgame
-   SECRET_KEY=sua_chave_secreta_jwt_aqui_mude_em_producao
+   SECRET_KEY=change_this_jwt_secret_in_production
    PORT=3000
    NODE_ENV=development
    FRONTEND_URL=http://localhost:3000
    ```
+
+   > Importante: o arquivo `.env` contém segredos e não deve ser enviado para o controle de versão. Ele já está listado em `.gitignore`.
 
 5. Crie o banco de dados:
    ```bash

@@ -1,7 +1,16 @@
 import { apiService } from './services/api.js';
 import { DOMUtils } from './utils/dom.js';
 
-export const renderQuizList = () => {
+let availableSubjects = [];
+
+export const renderQuizList = async () => {
+    // Carregar matérias disponíveis
+    await fetchAvailableSubjects();
+
+    const subjectOptions = availableSubjects.map(subject => 
+        `<option value="${subject}">${subject}</option>`
+    ).join('');
+
     const html = `
         <section class="quiz-list-container">
             <div class="section-header">
@@ -16,7 +25,10 @@ export const renderQuizList = () => {
                 </div>
                 <div class="filter-row">
                     <label for="filter-subject">Matéria</label>
-                    <input id="filter-subject" type="text" placeholder="Ex: Matemática" />
+                    <select id="filter-subject">
+                        <option value="">Selecione uma matéria</option>
+                        ${subjectOptions}
+                    </select>
                 </div>
                 <div class="filter-row">
                     <label for="filter-theme">Tema</label>
@@ -40,6 +52,28 @@ export const renderQuizList = () => {
     bindQuizSearchEvents();
     loadQuizList();
 };
+
+async function fetchAvailableSubjects() {
+    try {
+        const response = await apiService.get('/api/quiz/subjects');
+        availableSubjects = response.subjects || [];
+    } catch (error) {
+        console.error('Erro ao buscar matérias:', error);
+        // Matérias padrão caso o endpoint falhe
+        availableSubjects = [
+            'Matemática',
+            'Português',
+            'História',
+            'Geografia',
+            'Ciências',
+            'Inglês',
+            'Física',
+            'Química',
+            'Biologia',
+            'Educação Física'
+        ];
+    }
+}
 
 function bindQuizSearchEvents() {
     DOMUtils.addEventListener('#quiz-search-form', 'submit', async (event) => {

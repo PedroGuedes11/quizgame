@@ -64,13 +64,17 @@ function renderDoAfterList(quizzes) {
     if (!quizzes || quizzes.length === 0) {
         return '<p>Nenhum quiz marcado para depois.</p>';
     }
-    //itera no array de quizzes mostrando o id_quiz
+
     return `
         <ul class="do-after-list">
             ${quizzes.map(quiz => `
-                <li>${quiz.id_quiz}</li>
-                <a href="/html/quiz.html?quizId=${quiz.id_quiz}"><button>Jogar Quiz</button></a>
-                <button id="remove-do-after" data-quiz-id="${quiz.id_quiz}">Remover da lista</button>`
+                <li class="do-after-item">
+                    <div class="do-after-meta">Quiz ID: ${quiz.id_quiz}</div>
+                    <div class="do-after-actions">
+                        <a href="/html/quiz.html?quizId=${quiz.id_quiz}"><button class="primary-button">Jogar Quiz</button></a>
+                        <button class="secondary-button remove-do-after" data-quiz-id="${quiz.id_quiz}">Remover da lista</button>
+                    </div>
+                </li>`
             ).join('')}
         </ul>
     `;
@@ -78,18 +82,22 @@ function renderDoAfterList(quizzes) {
 
 //adiciona evento de clique no botao de remover da tabela do-after para remover o quiz da lista do aluno
 document.addEventListener('click', async (e) => {
-    if (e.target && e.target.id === 'remove-do-after') {
-        const quizId = e.target.dataset.quizId;
-        const user = await fetchUser();
-        if (!user) {
-            window.location.href = '/html/register_login.html';
-            return;
-        }
-        try {
-            await apiService.delete(`/api/quiz/do-after/${ user.id_student }/${ quizId }`);
-        } catch (err) {
-            console.error('Erro ao remover quiz da lista:', err);
-        }
+    const target = e.target;
+    if (!target || !target.classList.contains('remove-do-after')) {
+        return;
+    }
+
+    const quizId = target.dataset.quizId;
+    const user = await fetchUser();
+    if (!user) {
+        window.location.href = '/html/register_login.html';
+        return;
+    }
+    try {
+        await apiService.delete(`/api/quiz/do-after/${user.id_student}/${quizId}`);
+        await renderStudentDashboard();
+    } catch (err) {
+        console.error('Erro ao remover quiz da lista:', err);
     }
 });
 
@@ -214,6 +222,7 @@ export const renderStudentDashboard = async () => {
     `;
 
     DOMUtils.setInnerHTML('#dashboard-content', html);
+    setupDashboardTabs();
     if (user.energy < MAX_ENERGY && Number.isFinite(user.next_energy_seconds) && user.next_energy_seconds > 0) {
         startEnergyCountdown(user.next_energy_seconds);
     } else {
@@ -241,14 +250,11 @@ export const renderStudentDashboard = async () => {
             if (doAfterCount === 0) {
                 if (doAfterContainer) doAfterContainer.innerHTML += '<p>Nenhum quiz marcado para depois.</p>';
                 return;
-            }
-            else {
+            } else {
                 const plural = doAfterCount === 1 ? '' : 'zes';
-                doAfterContainer.innerHTML += `Você marcou ${doAfterCount} quiz${plural} para fazer mais tarde`;
-                if (doAfterContainer){
-                    doAfterResp.do_after.forEach(quiz => {
-                        doAfterContainer.innerHTML += renderDoAfterList([quiz]);
-                    })
+                if (doAfterContainer) {
+                    doAfterContainer.innerHTML += `Você marcou ${doAfterCount} quiz${plural} para fazer mais tarde`;
+                    doAfterContainer.innerHTML += renderDoAfterList(doAfterResp.do_after);
                 }
             }
         } catch (err) {
@@ -294,3 +300,36 @@ export const renderStudentDashboard = async () => {
         });
     }
 };
+
+function setupDashboardTabs() {
+    const buttons = document.querySelectorAll('#carrousel-navbar .navbar-btn');
+    const items = document.querySelectorAll('.carrousel-item');
+
+    if (!buttons.length || !items.length) {
+        return;
+    }
+
+    const updateTabs = (index) => {
+        buttons.forEach((button, buttonIndex) => {
+            if (buttonIndex === index) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
+            }
+        });
+
+        items.forEach((item, itemIndex) => {
+            if (itemIndex === index) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    };
+
+    buttons.forEach((button, index) => {
+        button.addEventListener('click', () => updateTabs(index));
+    });
+
+    updateTabs(0);
+}

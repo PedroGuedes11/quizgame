@@ -1,4 +1,34 @@
 import db from "../model/db.js";
+
+// Lista canônica de matérias com acentuação padrão
+const STANDARD_SUBJECTS = [
+    'Matemática',
+    'Português',
+    'História',
+    'Geografia',
+    'Ciências',
+    'Inglês',
+    'Física',
+    'Química',
+    'Biologia',
+    'Educação Física'
+];
+
+// Normaliza um subject para a forma padrão
+function normalizeSubject(subject) {
+    if (!subject) return '';
+    
+    const trimmed = subject.trim();
+    
+    // Procura uma correspondência case-insensitive na lista padrão
+    const standardForm = STANDARD_SUBJECTS.find(
+        std => std.toLowerCase() === trimmed.toLowerCase()
+    );
+    
+    // Retorna a forma padrão se encontrar, senão retorna com trim
+    return standardForm || trimmed;
+}
+
 import {
     //general quiz queries
     insertQuiz,
@@ -11,6 +41,7 @@ import {
     
     //Searh quiz queries
     getQuizzesWithFilters,
+    getQuizSubjects,
     
     //teacher quizzes queries
     getQuizzesByTeacherId,
@@ -42,7 +73,9 @@ export const createQuiz = async (req, res) => {
     try {
         await db.query("BEGIN");
 
-        const quiz = await insertQuiz(teacherId, subject, theme);
+        // Normaliza o subject para garantir acentuação padrão
+        const normalizedSubject = normalizeSubject(subject);
+        const quiz = await insertQuiz(teacherId, normalizedSubject, theme);
         const createdQuizId = quiz.id_quiz;
 
         for (const question of questions) {
@@ -186,6 +219,17 @@ export const searchQuizzes = async (req, res) => {
     } catch (error) {
         console.error("searchQuizzes error:", error);
         return res.status(500).json({ error: "Erro ao buscar quizzes." });
+    }
+};
+
+// Get all distinct subjects from database
+export const getSubjects = async (req, res) => {
+    try {
+        const subjects = await getQuizSubjects();
+        return res.status(200).json({ subjects });
+    } catch (error) {
+        console.error("getSubjects error:", error);
+        return res.status(500).json({ error: "Erro ao buscar matérias." });
     }
 };
 

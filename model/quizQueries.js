@@ -165,7 +165,10 @@ export const getLeaderboardGeneral = async (limit = 10) => {
 
 export const getQuizSubjects = async () => {
     const result = await db.query(
-        `SELECT DISTINCT subject FROM quizzes ORDER BY subject`
+        `SELECT DISTINCT TRIM(subject) as subject 
+         FROM quizzes 
+         WHERE subject IS NOT NULL AND subject != ''
+         ORDER BY subject`
     );
     return result.rows.map((row) => row.subject);
 };

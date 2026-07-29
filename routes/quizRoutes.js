@@ -3,6 +3,7 @@ import {
     getQuizData,
     submitQuiz,
     searchQuizzes,
+    getSubjects,
     
     createQuiz,
     getTeacherQuizzes,
@@ -22,6 +23,7 @@ const router = express.Router();
 router.get("/get-quiz-data/:quizId", validateToken, verifyUser, getQuizData);
 router.post("/submit", validateToken, verifyUser, submitQuiz);
 router.get("/search", validateToken, verifyUser, searchQuizzes);
+router.get("/subjects", validateToken, verifyUser, getSubjects);
 
 //teacher quizzes management
 router.post("/teacher-quizzes", validateToken, verifyUser, createQuiz);

@@ -80,6 +80,7 @@ export const renderTeacherDashboard = async () => {
     `;
 
     DOMUtils.setInnerHTML('#dashboard-content', html);
+    setupTeacherDashboardTabs();
     await loadTeacherQuizzes();
 
     const form = document.querySelector('#profile-update-form');
@@ -119,6 +120,39 @@ export const renderTeacherDashboard = async () => {
         });
     }
 };
+
+function setupTeacherDashboardTabs() {
+    const buttons = document.querySelectorAll('#carrousel-navbar .navbar-btn');
+    const items = document.querySelectorAll('.carrousel-item');
+
+    if (!buttons.length || !items.length) {
+        return;
+    }
+
+    const updateTabs = (index) => {
+        buttons.forEach((button, buttonIndex) => {
+            if (buttonIndex === index) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
+            }
+        });
+
+        items.forEach((item, itemIndex) => {
+            if (itemIndex === index) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    };
+
+    buttons.forEach((button, index) => {
+        button.addEventListener('click', () => updateTabs(index));
+    });
+
+    updateTabs(0);
+}
 
 async function loadTeacherQuizzes() {
     const container = document.querySelector('#created-quizzes');

@@ -25,22 +25,24 @@ export const renderTeacherDashboard = async () => {
             
             <div id="carrousel-navbar">
                 <button class="navbar-btn active">Perfil</button>
-                <button class="navbar-btn">Quizzes Criados</button>
+                <button class="navbar-btn not-active">Quizzes Criados</button>
             </div>
 
             <div id="carrousel">
                 
-                <div id="profile" class="carrousel-item">
-                    <div id="img">
-                        <img id="teacher-avatar" src="${photo}" alt="Avatar do professor" width="150">
-                    </div>
-                    <div class="user-data">
-                        <div class="data-item">Professor: ${user.username}</div>
-                        <div class="data-item">Email: ${user.email}</div>
-                        <div class="data-item">Quizzes criados: ${user.quizzes_created}</div>
+                <div id="profile" class="carrousel-item profile-panel">
+                    <div id="profile-top">
+                        <div class="profile-icon-box">
+                            <img id="teacher-avatar" class="profile-icon" src="${photo}" alt="Avatar do professor">
+                        </div>
+                        <div class="profile-data-grid">
+                            <div class="data-item">Professor: ${user.username}</div>
+                            <div class="data-item">Email: ${user.email}</div>
+                            <div class="data-item">Quizzes criados: ${user.quizzes_created}</div>
+                        </div>
                     </div>
                     
-                    <div id="profile-edit">
+                    <div id="profile-edit" class="profile-card">
                         <h3>Editar perfil</h3>
                         <form id="profile-update-form" enctype="multipart/form-data">
                             <div class="form-group">
@@ -73,6 +75,7 @@ export const renderTeacherDashboard = async () => {
             </div>
 
             <div id="create-quiz">
+                <br>
                 <a href="/html/teacher_quizzes.html"><button>Criar quiz</button></a>
             </div>
         
@@ -133,8 +136,10 @@ function setupTeacherDashboardTabs() {
         buttons.forEach((button, buttonIndex) => {
             if (buttonIndex === index) {
                 button.classList.add('active');
+                button.classList.remove('not-active');
             } else {
                 button.classList.remove('active');
+                button.classList.add('not-active');
             }
         });
 
@@ -167,24 +172,33 @@ async function loadTeacherQuizzes() {
         const quizzes = response.quizzes || [];
 
         if (quizzes.length === 0) {
-            container.innerHTML = '<p>Você ainda não criou quizzes.</p>';
+            container.innerHTML = '<p class="teacher-created-empty">Você ainda não criou quizzes.</p>';
             return;
         }
 
-        container.innerHTML = quizzes.map((quiz) => `
-            <div class="teacher-quiz-item" data-quiz-id="${quiz.id_quiz}">
-                <div class="quiz-meta">
-                    <span>ID: ${quiz.id_quiz}</span>
-                    <span>${quiz.subject}</span>
-                    <span>${quiz.theme}</span>
-                </div>
-                <div class="quiz-stats">
-                    <span>${quiz.question_count} perguntas</span>
-                    <span>${new Date(quiz.created_at).toLocaleString('pt-BR')}</span>
-                </div>
-                <button class="delete-quiz-btn" data-quiz-id="${quiz.id_quiz}">Remover</button>
-            </div>
-        `).join('');
+        container.innerHTML = `
+            <div class="teacher-created-grid">
+                ${quizzes.map((quiz) => {
+                    const createdAt = quiz.created_at ? new Date(quiz.created_at).toLocaleString('pt-BR') : 'Data não disponível';
+                    return `
+                        <article class="teacher-quiz-card" data-quiz-id="${quiz.id_quiz}">
+                            <div class="teacher-quiz-card-header">
+                                <div>
+                                    <div class="teacher-quiz-title">ID ${quiz.id_quiz}</div>
+                                    <div class="teacher-quiz-meta">${quiz.theme || 'Tema não informado'}</div>
+                                </div>
+                            </div>
+                            <div class="teacher-quiz-card-body">
+                                <div class="teacher-quiz-line"><span>Matéria</span><strong>${quiz.subject || 'Sem matéria'}</strong></div>
+                                <div class="teacher-quiz-line"><span>Tema</span><strong>${quiz.theme || 'Tema não informado'}</strong></div>
+                                <div class="teacher-quiz-line"><span>Criado em</span><strong>${createdAt}</strong></div>
+                            </div>
+                            <div class="teacher-quiz-card-actions">
+                                <button class="delete-quiz-btn secondary-button" data-quiz-id="${quiz.id_quiz}">Remover quiz</button>
+                            </div>
+                        </article>`;
+                }).join('')}
+            </div>`;
 
         const deleteButtons = container.querySelectorAll('.delete-quiz-btn');
         deleteButtons.forEach((button) => {

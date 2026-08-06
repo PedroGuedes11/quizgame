@@ -136,29 +136,38 @@ function renderQuizCards(quizzes) {
     }
 
     if (!quizzes.length) {
-        container.innerHTML = '<p>Nenhum quiz encontrado com esses filtros.</p>';
+        container.innerHTML = '<p class="quiz-list-empty">Nenhum quiz encontrado com esses filtros.</p>';
         return;
     }
 
-    container.innerHTML = quizzes.map((quiz) => `
-        <article class="quiz-card">
-            <div class="quiz-card-top">
-                <span class="quiz-card-id">ID: ${quiz.id_quiz}</span>
-                <strong>${quiz.subject}</strong>
-            </div>
-            <p>${quiz.theme}</p>
-            <p class="quiz-meta">Professor: ${quiz.teacher_username || 'Desconhecido'}</p>
-            <p class="quiz-meta">Perguntas: ${quiz.question_count}</p>
-            <a href="/html/quiz.html?quizId=${quiz.id_quiz}"><button>Iniciar</button></a>
-            <button id="do-after-btn">Fazer mais tarde</button>
-        </article>
-    `).join('');
+    container.innerHTML = quizzes.map((quiz) => {
+        const subject = quiz.subject || 'Matéria não disponível';
+        const theme = quiz.theme || 'Tema não disponível';
+        const teacher = quiz.teacher_username || 'Desconhecido';
+        const idQuiz = quiz.id_quiz || '---';
+        return `
+            <article class="quiz-card quiz-card-modern">
+                <div class="quiz-card-header">
+                    <div>
+                        <div class="quiz-card-id">ID ${idQuiz}</div>
+                        <div class="quiz-card-title">${theme}</div>
+                    </div>
+                </div>
+                <div class="quiz-card-body">
+                    <div class="quiz-card-line"><span>Professor</span><strong>${teacher}</strong></div>
+                    <div class="quiz-card-line"><span>Matéria</span><strong>${subject}</strong></div>
+                </div>
+                <div class="quiz-card-actions">
+                    <a href="/html/quiz.html?quizId=${idQuiz}"><button class="primary-button">Iniciar</button></a>
+                    <button class="secondary-button do-after-btn" data-quiz-id="${idQuiz}">Fazer mais tarde</button>
+                </div>
+            </article>`;
+    }).join('');
 
-    // Bind "Fazer mais tarde" buttons
-    const doAfterButtons = container.querySelectorAll('#do-after-btn');
+    const doAfterButtons = container.querySelectorAll('.do-after-btn');
     doAfterButtons.forEach((button) => {
         button.addEventListener('click', async () => {
-            const quizId = button.closest('.quiz-card')?.querySelector('.quiz-card-id')?.textContent.replace('ID: ', '').trim();
+            const quizId = button.dataset.quizId;
             if (!quizId) {
                 console.error('Quiz ID não encontrado para marcar como "Fazer mais tarde".');
                 return;

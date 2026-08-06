@@ -12,24 +12,28 @@ export function renderQuestionCard(question, currentIndex, selectedValue) {
   const alternatives = DOMUtils.createElement('div', { class: 'alternatives' });
 
   question.alternatives.forEach((alt) => {
-    const label = DOMUtils.createElement('label', { class: 'alternative' });
+    const isSelected = String(selectedValue) === String(alt.id_alternative);
+    const label = DOMUtils.createElement('label', { class: `alternative${isSelected ? ' selected' : ''}` });
 
     const inputAttrs = {
       type: 'radio',
       name: `question-${currentIndex}`,
       value: String(alt.id_alternative),
+      'aria-label': alt.label || ''
     };
 
-    if (String(selectedValue) === String(alt.id_alternative)) {
+    if (isSelected) {
       inputAttrs.checked = 'checked';
     }
 
     const input = DOMUtils.createElement('input', inputAttrs);
     const alternativeText = alt.text || alt.alternative_text || '';
-    const labelText = alt.label ? `${alt.label}) ${alternativeText}` : alternativeText;
-    const span = DOMUtils.createElement('span', {}, labelText);
+    const badgeText = alt.label ? alt.label : '';
+    const badge = DOMUtils.createElement('span', { class: 'alt-badge' }, badgeText);
+    const span = DOMUtils.createElement('span', { class: 'alt-text' }, badgeText ? `${alternativeText}` : alternativeText);
 
     label.appendChild(input);
+    label.appendChild(badge);
     label.appendChild(span);
     alternatives.appendChild(label);
   });

@@ -7,7 +7,7 @@ export const renderRegisterLogin = () => {
                 <div class="auth-hero">
                     <div class="auth-brand">
                         <h1>Quiz Game</h1>
-                        <p>Faça login ou registre-se para acessar quizzes, criar conteúdo e acompanhar seu progresso.</p>
+                        <p>Faça login ou registre-se para jogar quizzes, gerenciar sua conta e acompanhar seu progresso.</p>
                     </div>
                     <div class="auth-info">
                         <h2>Seja bem-vindo!</h2>

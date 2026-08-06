@@ -8,7 +8,10 @@ const createTable = (columns, rows) => {
 
     const head = columns.map((col) => `<th>${col.label}</th>`).join('');
     const body = rows.map((row, index) => {
-        const cells = columns.map((col) => `<td>${col.render ? col.render(row, index) : row[col.key]}</td>`).join('');
+        const cells = columns.map((col) => {
+            const value = col.render ? col.render(row, index) : row[col.key];
+            return `<td data-label="${col.label}">${value}</td>`;
+        }).join('');
         return `<tr>${cells}</tr>`;
     }).join('');
 
@@ -32,6 +35,25 @@ const renderError = (message) => `
     </div>
 `;
 
+const getRankingAvatarUrl = (profilePhoto) => {
+    if (!profilePhoto) {
+        return '/img/profiles/default.svg';
+    }
+
+    const normalized = profilePhoto.trim();
+    if (normalized.startsWith('/img/profiles/')) {
+        return normalized;
+    }
+    if (normalized.startsWith('img/profiles/')) {
+        return `/${normalized}`;
+    }
+    if (normalized.startsWith('public/img/profiles/')) {
+        return `/${normalized.slice('public/'.length)}`;
+    }
+
+    return `/img/profiles/${normalized}`;
+};
+
 const loadGeneralRanking = async () => {
     const content = document.querySelector('#ranking-view');
     if (!content) return;
@@ -42,7 +64,18 @@ const loadGeneralRanking = async () => {
         content.innerHTML = createTable(
             [
                 { label: 'Posição', key: 'position', render: (_, index) => index + 1 },
-                { label: 'Aluno', key: 'username' },
+                {
+                    label: 'Aluno',
+                    key: 'username',
+                    render: (row) => {
+                        const avatar = getRankingAvatarUrl(row.profile_photo);
+                        return `
+                            <div class="ranking-user-cell">
+                                <img class="ranking-user-avatar" src="${avatar}" alt="${row.username}" onerror="this.src='/img/profiles/default.svg'" />
+                                <span>${row.username}</span>
+                            </div>`;
+                    }
+                },
                 { label: 'Pontos gerais', key: 'global_points' },
                 { label: 'Quizzes completos', key: 'quizzes_completed' }
             ],
@@ -87,7 +120,18 @@ const loadSubjectRanking = async (subject) => {
             ${createTable(
                 [
                     { label: 'Posição', key: 'position', render: (_, index) => index + 1 },
-                    { label: 'Aluno', key: 'username' },
+                    {
+                        label: 'Aluno',
+                        key: 'username',
+                        render: (row) => {
+                            const avatar = getRankingAvatarUrl(row.profile_photo);
+                            return `
+                                <div class="ranking-user-cell">
+                                    <img class="ranking-user-avatar" src="${avatar}" alt="${row.username}" onerror="this.src='/img/profiles/default.svg'" />
+                                    <span>${row.username}</span>
+                                </div>`;
+                        }
+                    },
                     { label: 'Pontos na matéria', key: 'subject_points' },
                     { label: 'Quizzes completos', key: 'quizzes_completed' }
                 ],
@@ -110,7 +154,18 @@ const loadCompletedRanking = async () => {
         content.innerHTML = createTable(
             [
                 { label: 'Posição', key: 'position', render: (_, index) => index + 1 },
-                { label: 'Aluno', key: 'username' },
+                {
+                    label: 'Aluno',
+                    key: 'username',
+                    render: (row) => {
+                        const avatar = getRankingAvatarUrl(row.profile_photo);
+                        return `
+                            <div class="ranking-user-cell">
+                                <img class="ranking-user-avatar" src="${avatar}" alt="${row.username}" onerror="this.src='/img/profiles/default.svg'" />
+                                <span>${row.username}</span>
+                            </div>`;
+                    }
+                },
                 { label: 'Quizzes concluídos', key: 'quizzes_completed' },
                 { label: 'Pontos totais', key: 'total_points' }
             ],
@@ -127,8 +182,10 @@ const setActiveTab = (tab) => {
     buttons.forEach((button) => {
         if (button.dataset.tab === tab) {
             button.classList.add('active');
+            button.classList.remove('not-active');
         } else {
             button.classList.remove('active');
+            button.classList.add('not-active');
         }
     });
 };
@@ -182,8 +239,8 @@ export const renderRanking = async () => {
             </div>
             <div class="ranking-tabs">
                 <button class="ranking-tab active" data-tab="general">Geral</button>
-                <button class="ranking-tab" data-tab="subject">Por matéria</button>
-                <button class="ranking-tab" data-tab="completed">Quizzes completados</button>
+                <button class="ranking-tab not-active" data-tab="subject">Por matéria</button>
+                <button class="ranking-tab not-active" data-tab="completed">Quizzes completados</button>
             </div>
             <div id="subject-filter" class="ranking-subject-filter" style="display: none; margin-bottom: 16px;">
                 <label for="subject-select">Matéria:</label>

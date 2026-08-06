@@ -45,25 +45,31 @@ export const renderQuiz = async () => {
     startedAt = new Date();
     currentQuestionIndex = 0;
 
+    const meta = quizData.metadata || {}; 
+    const idDisplay = quizData.quizId || meta.id_quiz || quizData.id || quizData.id_quiz || quizData.idQuiz || '---';
+    const themeDisplay = meta.theme || quizData.theme || quizData.title || quizData.name || '';
+    const subjectDisplay = meta.subject || quizData.subject || quizData.matter || '';
+
     const html = `
-        <h2>Quiz</h2>
-        <p>Teste seus conhecimentos sobre o conteúdo apresentado no curso.</p>
-        <div id="timer">
-            <!-- O temporizador será exibido aqui -->
+        <div class="quiz-hero compact-hero">
+            <div class="quiz-hero-copy">
+                <div class="quiz-meta-line"><strong>ID</strong> ${idDisplay}</div>
+                <div class="quiz-meta-line"><strong>Tema</strong> ${themeDisplay}</div>
+                <div class="quiz-meta-line"><strong>Matéria</strong> ${subjectDisplay}</div>
+            </div>
+            <div class="quiz-hero-meta">
+                <div class="quiz-timer-box">
+                    <span>Tempo restante</span>
+                    <div id="timer"></div>
+                </div>
+            </div>
         </div>
-        <div id="quiz-questions">
-            <!-- As perguntas do quiz serão inseridas aqui dinamicamente -->
+        <div class="quiz-footer">
+            <div id="navigation-buttons"></div>
+            <button id="submit-quiz-btn" type="button">Terminar quiz</button>
         </div>
-        <div id="quiz-alternatives">
-            <!-- As alternativas do quiz serão inseridas aqui dinamicamente -->
-        </div>
-        <div id="navigation-buttons"></div>
-        <div id="selected-answers">
-            <!-- As respostas selecionadas pelo usuário serão exibidas aqui -->
-        </div>
-        
-        <button id="submit-quiz-btn" type="button">Terminar quiz</button>
-        
+        <div id="quiz-container" class="quiz-container"></div>
+        <div id="quiz-progress"></div>
     `;
 
     DOMUtils.setInnerHTML('#quiz-content', html);
@@ -159,38 +165,21 @@ function renderQuestion() {
 
     DOMUtils.setInnerHTML('#quiz-container', '');
     DOMUtils.appendChild('#quiz-container', questionElement);
-    renderSelectedAnswers();
+    renderQuizProgress();
 }
 
-function renderSelectedAnswers() {
-    const currentQuestion = quizData.questions[currentQuestionIndex];
-    const selectedAltId = selectedAlternatives[currentQuestionIndex];
-    const selectedAlternative = currentQuestion.alternatives.find((alt) => String(alt.id_alternative) === String(selectedAltId));
-    const selectedText = selectedAlternative
-        ? `${selectedAlternative.label}) ${selectedAlternative.text || selectedAlternative.alternative_text || ''}`
-        : 'Nenhuma alternativa selecionada';
-
-    const answeredCount = selectedAlternatives.filter((alt) => alt != null).length;
+function renderQuizProgress() {
     const totalCount = quizData.questions.length;
+    const answeredCount = selectedAlternatives.filter((alt) => alt != null && alt !== '').length;
 
-    let summaryHtml = `
-        <div class="selected-answers-summary">
-            <h3>Alternativa selecionada</h3>
-            <p>${selectedText}</p>
-            <h4>Resumo das respostas</h4>
-            <p>${answeredCount} de ${totalCount} questões respondidas</p>
-            <ul class="selected-answers-list">
-                ${quizData.questions.map((question, index) => {
-                    const altId = selectedAlternatives[index];
-                    const alt = question.alternatives.find((item) => String(item.id_alternative) === String(altId));
-                    const answerText = alt ? `${alt.label}) ${alt.text || alt.alternative_text || ''}` : 'Sem resposta';
-                    return `<li>Questão ${index + 1}: ${answerText}</li>`;
-                }).join('')}
-            </ul>
+    const progressHtml = `
+        <div class="quiz-progress-card">
+            <span class="progress-label">Questão ${currentQuestionIndex + 1} de ${totalCount}</span>
+            <span class="progress-answer-count">${answeredCount} respondidas</span>
         </div>
     `;
 
-    DOMUtils.setInnerHTML('#selected-answers', summaryHtml);
+    DOMUtils.setInnerHTML('#quiz-progress', progressHtml);
 }
 
 function renderNavigation() {
@@ -219,7 +208,7 @@ function bindEvents() {
             if (input && input.matches('input[type="radio"][name^="question-"]')) {
                 const selectedValue = input.value;
                 selectedAlternatives[currentQuestionIndex] = selectedValue ? selectedValue : null;
-                renderSelectedAnswers();
+                renderQuestion();
             }
         });
 
@@ -254,7 +243,7 @@ function nextQuestion() {
     if (currentQuestionIndex < quizData.questions.length - 1) {
         currentQuestionIndex++;
         renderQuestion();
-        renderSelectedAnswers();
+        renderQuizProgress();
         renderNavigation();
         bindEvents();
     }
@@ -264,7 +253,7 @@ function previousQuestion() {
     if (currentQuestionIndex > 0) {
         currentQuestionIndex--;
         renderQuestion();
-        renderSelectedAnswers();
+        renderQuizProgress();
         renderNavigation();
         bindEvents();
     }

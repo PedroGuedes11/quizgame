@@ -106,7 +106,7 @@ class AppOrchestrator {
             'rules.html': [
                 { label: 'Home', href: '/html/homepage.html' },
                 { label: 'Sobre', href: '/html/about.html' },
-                { label: token ? 'Meu Perfil' : 'Login/Registrar', href: '/html/register_login.html' },
+                { label: token ? 'Meu Perfil' : 'Login/Registrar', href: '/html/register_login.html' }
             ],
             'register_login.html': [
                 { label: 'Home', href: '/html/homepage.html' },
@@ -115,12 +115,16 @@ class AppOrchestrator {
             ],
             'quiz_list.html': [
                 { label: 'Home', href: '/html/homepage.html' },
+                { label: 'Sobre', href: '/html/about.html' },
+                { label: 'Regras', href: '/html/rules.html' },
                 { label: 'Ranking', href: '/html/ranking.html' },
                 { label: 'Meu Perfil', href: '/html/register_login.html' },
                 { label: 'Sair do perfil', href: '#', id: 'logout-btn'}
             ],
             'quiz.html': [
                 { label: 'Home', href: '/html/homepage.html' },
+                { label: 'Sobre', href: '/html/about.html' },
+                { label: 'Regras', href: '/html/rules.html' },
                 { label: 'Quizzes', href: '/html/quiz_list.html' },
                 { label: 'Ranking', href: '/html/ranking.html' },
                 { label: 'Meu Perfil', href: '/html/register_login.html' },
@@ -128,18 +132,24 @@ class AppOrchestrator {
             ],
             'ranking.html': [
                 { label: 'Home', href: '/html/homepage.html' },
+                { label: 'Sobre', href: '/html/about.html' },
+                { label: 'Regras', href: '/html/rules.html' },
                 { label: 'Quizzes', href: '/html/quiz_list.html' },
                 { label: 'Meu Perfil', href: '/html/register_login.html' },
                 { label: 'Sair do perfil', href: '#', id: 'logout-btn'}
             ],
             'dashboard_student.html': [
                 { label: 'Home', href: '/html/homepage.html' },
+                { label: 'Sobre', href: '/html/about.html' },
+                { label: 'Regras', href: '/html/rules.html' },
                 { label: 'Quizzes', href: '/html/quiz_list.html' },
                 { label: 'Ranking', href: '/html/ranking.html' },
                 { label: 'Sair do Perfil', href: '#', id: 'logout-btn' }
             ],
             'dashboard_teacher.html': [
                 { label: 'Home', href: '/html/homepage.html' },
+                { label: 'Sobre', href: '/html/about.html' },
+                { label: 'Regras', href: '/html/rules.html' },
                 { label: 'Quizzes', href: '/html/quiz_list.html' },
                 { label: 'Criar quiz', href: '/html/teacher_quizzes.html' },
                 { label: 'Ranking', href: '/html/ranking.html' },
@@ -147,6 +157,8 @@ class AppOrchestrator {
             ],
             'teacher_quizzes.html': [
                 { label: 'Home', href: '/html/homepage.html' },
+                { label: 'Sobre', href: '/html/about.html' },
+                { label: 'Regras', href: '/html/rules.html' },
                 { label: 'Quizzes', href: '/html/quiz_list.html' },
                 { label: 'Ranking', href: '/html/ranking.html' },
                 { label: 'Meu Perfil', href: '/html/dashboard_teacher.html' },
@@ -424,6 +436,52 @@ class AppOrchestrator {
             const title = doc.querySelector('title')?.textContent;
             if (title) {
                 document.title = title;
+            }
+
+            // Copy page-specific styles (link[rel=stylesheet] and style) from fetched document
+            try {
+                // Remove previously injected page-specific styles
+                const prev = document.head.querySelectorAll('link[data-page-style], style[data-page-style]');
+                prev.forEach(el => el.remove());
+
+                const styles = Array.from(doc.head.querySelectorAll('link[rel="stylesheet"], style'));
+                const loadPromises = [];
+                styles.forEach((styleEl) => {
+                    if (styleEl.tagName.toLowerCase() === 'link') {
+                        const href = styleEl.getAttribute('href');
+                        if (!href) return;
+                        const exists = Array.from(document.head.querySelectorAll('link[rel="stylesheet"]'))
+                            .some(l => l.getAttribute('href') === href);
+                        if (!exists) {
+                            const link = document.createElement('link');
+                            link.rel = 'stylesheet';
+                            link.href = href;
+                            link.setAttribute('data-page-style', this.getPageFromPath(path));
+                            const p = new Promise((resolve) => {
+                                link.addEventListener('load', () => resolve(true));
+                                link.addEventListener('error', () => resolve(false));
+                            });
+                            loadPromises.push(p);
+                            document.head.appendChild(link);
+                        } else {
+                            const existing = Array.from(document.head.querySelectorAll('link[rel="stylesheet"]'))
+                                .find(l => l.getAttribute('href') === href);
+                            if (existing) existing.setAttribute('data-page-style', this.getPageFromPath(path));
+                        }
+                    } else if (styleEl.tagName.toLowerCase() === 'style') {
+                        const cloned = document.createElement('style');
+                        cloned.innerHTML = styleEl.innerHTML;
+                        cloned.setAttribute('data-page-style', this.getPageFromPath(path));
+                        document.head.appendChild(cloned);
+                    }
+                });
+
+                // Wait for all injected stylesheet links to finish loading to avoid FOUC
+                if (loadPromises.length) {
+                    try { await Promise.all(loadPromises); } catch (err) { /* ignore */ }
+                }
+            } catch (e) {
+                console.warn('[App] Falha ao injetar estilos da página:', e);
             }
 
             return true;

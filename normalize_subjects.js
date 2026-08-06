@@ -6,12 +6,15 @@ const STANDARD_SUBJECTS = [
     'Português',
     'História',
     'Geografia',
-    'Ciências',
     'Inglês',
     'Física',
     'Química',
     'Biologia',
-    'Educação Física'
+    'Filosofia',
+    'Sociologia',
+    'Educação Física',
+    'Artes',
+    'Ensino Religioso'
 ];
 
 // Normaliza um subject para a forma padrão

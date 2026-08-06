@@ -51,6 +51,31 @@ function startEnergyCountdown(initialSeconds) {
     }, 1000);
 }
 
+function pointsRequiredForLevel(level) {
+    if (level <= 1) {
+        return 0;
+    }
+    const n = level - 1;
+    const base = 50000;
+    const step = 20000;
+    return Math.floor(base * n + (step * n * (n - 1)) / 2);
+}
+
+function calculateLevelFromPoints(points) {
+    const normalizedPoints = Number.isFinite(points) ? Math.max(0, points) : 0;
+    let level = 1;
+
+    for (let candidate = 2; candidate <= 20; candidate += 1) {
+        if (normalizedPoints >= pointsRequiredForLevel(candidate)) {
+            level = candidate;
+        } else {
+            break;
+        }
+    }
+
+    return level;
+}
+
 async function fetchUser() {
     try {
         return await apiService.get('/api/user/user-info');
@@ -62,21 +87,36 @@ async function fetchUser() {
 
 function renderDoAfterList(quizzes) {
     if (!quizzes || quizzes.length === 0) {
-        return '<p>Nenhum quiz marcado para depois.</p>';
+        return '<p class="played-empty">Nenhum quiz marcado para depois.</p>';
     }
 
     return `
-        <ul class="do-after-list">
-            ${quizzes.map(quiz => `
-                <li class="do-after-item">
-                    <div class="do-after-meta">Quiz ID: ${quiz.id_quiz}</div>
-                    <div class="do-after-actions">
-                        <a href="/html/quiz.html?quizId=${quiz.id_quiz}"><button class="primary-button">Jogar Quiz</button></a>
-                        <button class="secondary-button remove-do-after" data-quiz-id="${quiz.id_quiz}">Remover da lista</button>
-                    </div>
-                </li>`
-            ).join('')}
-        </ul>
+        <div class="do-after-grid">
+            ${quizzes.map(quiz => {
+                const idQuiz = quiz.id_quiz ?? quiz.quizId ?? '---';
+                const subject = quiz.subject ?? 'Matéria não disponível';
+                const theme = quiz.theme ?? 'Tema não disponível';
+                const createdAt = quiz.created_at ? new Date(quiz.created_at).toLocaleDateString('pt-BR') : 'Data não disponível';
+                return `
+                    <article class="do-after-card">
+                        <div class="do-after-card-header">
+                            <div>
+                                <div class="do-after-card-title">ID ${idQuiz}</div>
+                                <div class="do-after-card-meta">Fazer mais tarde</div>
+                            </div>
+                        </div>
+                        <div class="do-after-card-body">
+                            <div class="do-after-card-line"><span>Matéria</span><strong>${subject}</strong></div>
+                            <div class="do-after-card-line"><span>Tema</span><strong>${theme}</strong></div>
+                            <div class="do-after-card-line"><span>Criado em</span><strong>${createdAt}</strong></div>
+                        </div>
+                        <div class="do-after-actions do-after-actions-card">
+                            <a href="/html/quiz.html?quizId=${idQuiz}"><button class="primary-button">Jogar Quiz</button></a>
+                            <button class="secondary-button remove-do-after" data-quiz-id="${idQuiz}">Remover da lista</button>
+                        </div>
+                    </article>`;
+            }).join('')}
+        </div>
     `;
 }
 
@@ -103,20 +143,31 @@ document.addEventListener('click', async (e) => {
 
 function renderPlayedList(played) {
     if (!played || played.length === 0) {
-        return '<p>Nenhum quiz realizado ainda.</p>';
+        return '<p class="played-empty">Nenhum quiz realizado ainda.</p>';
     }
 
     return `
-        <ul class="played-list">
+        <div class="played-list-grid">
             ${played.map(p => {
                 const started = new Date(p.started_at).toLocaleString();
                 const finished = new Date(p.finished_at).toLocaleString();
-                return `<li class="played-item">
-                    <div class="played-meta"><strong>${p.subject} - ${p.theme}</strong></div>
-                    <div class="played-data">Iniciado: ${started} — Finalizado: ${finished} — Pontos: ${p.total_points ?? 0}</div>
-                </li>`;
+                const points = p.total_points ?? 0;
+                return `
+                    <article class="played-card">
+                        <div class="played-card-header">
+                            <div>
+                                <div class="played-card-title">ID ${p.id_quiz} - ${p.theme}</div>
+                                <div class="played-card-meta">Matéria: ${p.subject}</div>
+                            </div>
+                            <span class="played-score">${points} pts</span>
+                        </div>
+                        <div class="played-card-body">
+                            <div class="played-card-line"><span>Iniciado</span><strong>${started}</strong></div>
+                            <div class="played-card-line"><span>Finalizado</span><strong>${finished}</strong></div>
+                        </div>
+                    </article>`;
             }).join('')}
-        </ul>
+        </div>
     `;
 }
 
@@ -145,37 +196,45 @@ export const renderStudentDashboard = async () => {
 
     const timerText = user.next_energy_seconds ? `Próximo ponto em ${formatSeconds(user.next_energy_seconds)}` : 'Energia já está no máximo';
 
+    const level = calculateLevelFromPoints(displayPoints);
+    const badgeLevel = Math.min(Math.max(level, 1), 20);
+    const badgePath = `../img/badges/badge_level${badgeLevel}.png`;
+
     const html = `
         <section id="dashboard-container">
             
             <div id="carrousel-navbar">
                 <button class="navbar-btn active">Perfil</button>
-                <button class="navbar-btn">Meus Quizzes</button>
-                <button class="navbar-btn">Fazer mais tarde</button>
+                <button class="navbar-btn not-active">Meus Quizzes</button>
+                <button class="navbar-btn not-active">Fazer mais tarde</button>
             </div>
 
             <div id="carrousel">
 
-                <div id="profile-container" class="carrousel-item">
-                    
-                    <div id="avatar-badge">
-                        <div class="img">
-                            <img id="user-avatar" src="${photo}" alt="Avatar do usuário" width="150">
+                <div id="profile-container" class="carrousel-item profile-panel">
+                    <div id="profile-top">
+                        <div id="avatar-badge" class="profile-summary">
+                            <div class="profile-icon-box">
+                                <img id="user-avatar" class="profile-icon" src="${photo}" alt="Avatar do usuário">
+                            </div>
+                            <div class="badge badge-card">
+                                <img class="badge-icon" src="${badgePath}" alt="badge">
+                                <div class="badge-text">
+                                    <span>Global points</span>
+                                    <strong>${displayPoints}</strong>
+                                </div>
+                            </div>
                         </div>
-                        <div class="badge">
-                            <img src="../img/badge.png" alt="badge">
-                            <strong>Global points: ${displayPoints}</strong>
+
+                        <div id="user-data" class="profile-data-grid">
+                            <div class="data-item">Usuário: ${user.username}</div>
+                            <div class="data-item">Email: ${user.email}</div>
+                            <div class="data-item">Energia disponível: ${energyText}<img src="../img/energy.png" alt="energy" class="energy-icon"></div>
+                            <div class="data-item" id="energy-timer">${user.energy < MAX_ENERGY ? timerText : 'Energia completa'}</div>
                         </div>
                     </div>
 
-                    <div id="user-data">
-                        <div class="data-item">Usuário: ${user.username}</div>
-                        <div class="data-item">Email: ${user.email}</div>
-                        <div class="data-item">Energia disponível: ${energyText}<img src="../img/energy.png" alt="energy" width="50"></div>
-                        <div class="data-item" id="energy-timer">${user.energy < MAX_ENERGY ? timerText : 'Energia completa'}</div>
-                    </div>
-
-                    <div id="edit-profile">
+                    <div id="edit-profile" class="profile-card">
                         <h3>Editar perfil</h3>
                         
                         <form id="profile-update-form" enctype="multipart/form-data">
@@ -313,8 +372,10 @@ function setupDashboardTabs() {
         buttons.forEach((button, buttonIndex) => {
             if (buttonIndex === index) {
                 button.classList.add('active');
+                button.classList.remove('not-active');
             } else {
                 button.classList.remove('active');
+                button.classList.add('not-active');
             }
         });
 

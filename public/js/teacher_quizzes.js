@@ -1,6 +1,22 @@
 import { apiService } from './services/api.js';
 import { DOMUtils } from './utils/dom.js';
 
+const MAX_QUESTIONS = 10;
+const ALTERNATIVE_LABELS = ['A', 'B', 'C', 'D', 'E'];
+let currentQuestionIndex = 0;
+let quizDraft = createEmptyQuizDraft();
+
+function createEmptyQuizDraft() {
+    return Array.from({ length: MAX_QUESTIONS }, (_, questionIndex) => ({
+        questionText: '',
+        alternatives: ALTERNATIVE_LABELS.map((label) => ({
+            label,
+            text: '',
+            isCorrect: false
+        }))
+    }));
+}
+
 const QUESTION_TEMPLATE = (questionIndex) => `
     <div class="question-card" data-question-index="${questionIndex}">
         <div class="question-header">
@@ -11,28 +27,36 @@ const QUESTION_TEMPLATE = (questionIndex) => `
             <textarea id="question-text-${questionIndex}" class="question-text" rows="3" placeholder="Digite a pergunta"></textarea>
         </div>
         <div class="alternatives-group">
-            ${['A', 'B', 'C', 'D', 'E'].map((label, altIndex) => `
-                <div class="alt-row">
+            ${ALTERNATIVE_LABELS.map((label, altIndex) => `
+                <label class="alt-row">
                     <span class="alt-label">${label}</span>
-                    <input type="text" class="alt-text" placeholder="Texto da alternativa ${label}" />
-                    <label class="alt-correct-label">
-                        <input type="radio" name="correct-answer-${questionIndex}" class="alt-correct" value="${label}" /> Correta
-                    </label>
-                </div>
+                    <input id="alt-text-${questionIndex}-${altIndex}" type="text" class="alt-text" placeholder="Texto da alternativa ${label}" />
+                    <span class="correct-wrapper">
+                        <input type="radio" name="correct-answer-${questionIndex}" class="alt-correct" value="${label}" />
+                        <span class="correct-label">Correta</span>
+                    </span>
+                </label>
             `).join('')}
         </div>
     </div>
 `;
 
 export const renderTeacherQuizzes = () => {
+    quizDraft = createEmptyQuizDraft();
+    currentQuestionIndex = 0;
+
+    const questionCards = Array.from({ length: MAX_QUESTIONS }, (_, index) => QUESTION_TEMPLATE(index + 1)).join('');
+
     const html = `
         <section class="teacher-quizzes-page">
-            <div class="page-header">
-                <h1>Crie seu quiz</h1>
-                <p>Professores podem criar quizzes completos</p>
+            <div class="quiz-hero compact-hero quiz-creator-hero">
+                <div class="quiz-hero-copy">
+                    <h1>Crie seu quiz</h1>
+                    <p>Professores podem criar quizzes completos em um fluxo visual moderno.</p>
+                </div>
             </div>
 
-            <div class="teacher-quizzes-grid">
+            <div class="teacher-quizzes-grid quiz-creator-grid">
                 <div class="quiz-creator-card">
                     <h2>Novo quiz</h2>
                     <div id="quiz-feedback" class="quiz-feedback"></div>
@@ -54,17 +78,20 @@ export const renderTeacherQuizzes = () => {
                                 <option value="ensino_religioso">Ensino Religioso</option>
                                 <option value="artes">Artes</option>
                                 <option value="ed_fisica">Educação Física</option>
-                            </select>    
+                            </select>
                         </div>
                         <div class="form-row">
                             <label for="theme">Tema</label>
                             <input id="theme" type="text" placeholder="Ex: Álgebra" required />
                         </div>
-                        <div id="question-container">
-                            ${QUESTION_TEMPLATE(1)}
+
+                        <div class="question-stage">
+                            <div id="question-tabs" class="question-tabs"></div>
+                            <div id="navigation-buttons" class="creator-navigation"></div>
+                            <div id="question-container">${questionCards}</div>
                         </div>
-                        <div class="toolbar-actions">
-                            <button id="add-question-btn" class="secondary-button">Adicionar questão</button>
+
+                        <div class="quiz-footer quiz-creator-footer">
                             <button type="submit" class="primary-button">Salvar quiz</button>
                         </div>
                     </form>
@@ -74,6 +101,8 @@ export const renderTeacherQuizzes = () => {
     `;
 
     DOMUtils.setInnerHTML('#dashboard-content', html);
+    renderQuestionNavigation();
+    renderNavigationButtons();
     bindTeacherQuizEvents();
 };
 
@@ -83,47 +112,134 @@ function bindTeacherQuizEvents() {
         await handleQuizSubmit();
     });
 
-    DOMUtils.addEventListener('#add-question-btn', 'click', (event) => {
-        event.preventDefault();
-        addQuestionCard();
+    document.body.addEventListener('input', (event) => {
+        const target = event.target;
+        if (!target) return;
+
+        const questionCard = target.closest('.question-card');
+        if (!questionCard) return;
+
+        const questionIndex = Number(questionCard.dataset.questionIndex) - 1;
+        if (Number.isNaN(questionIndex)) return;
+
+        if (target.matches('.question-text')) {
+            quizDraft[questionIndex].questionText = target.value;
+            return;
+        }
+
+        if (target.matches('.alt-text')) {
+            const altIndex = Number(target.id.split('-').pop());
+            quizDraft[questionIndex].alternatives[altIndex].text = target.value;
+            return;
+        }
     });
 
-    const quizListContainer = document.querySelector('#quiz-list-container');
-    if (quizListContainer) {
-        quizListContainer.addEventListener('click', async (event) => {
-            const removeButton = event.target.closest('.delete-quiz-btn');
-            if (!removeButton) {
-                return;
-            }
+    document.body.addEventListener('change', (event) => {
+        const target = event.target;
+        if (!target) return;
 
-            const quizId = removeButton.dataset.quizId;
-            if (!quizId) {
-                return;
-            }
+        const questionCard = target.closest('.question-card');
+        if (!questionCard) return;
 
-            if (!confirm('Tem certeza que deseja remover esse quiz?')) {
-                return;
-            }
+        const questionIndex = Number(questionCard.dataset.questionIndex) - 1;
+        if (Number.isNaN(questionIndex)) return;
 
-            await deleteQuiz(quizId);
-        });
+        if (target.matches('.alt-correct')) {
+            quizDraft[questionIndex].alternatives.forEach((alt) => {
+                alt.isCorrect = alt.label === target.value;
+            });
+            return;
+        }
+    });
+
+    document.body.addEventListener('click', (event) => {
+        const prevButton = event.target.closest('#prev-btn');
+        const nextButton = event.target.closest('#next-btn');
+        const tabButton = event.target.closest('.question-step-btn');
+
+        if (prevButton) {
+            event.preventDefault();
+            previousQuestion();
+            return;
+        }
+
+        if (nextButton) {
+            event.preventDefault();
+            nextQuestion();
+            return;
+        }
+
+        if (tabButton) {
+            event.preventDefault();
+            const index = Number(tabButton.dataset.questionIndex) - 1;
+            if (!Number.isNaN(index)) {
+                currentQuestionIndex = index;
+                updateQuestionView();
+            }
+        }
+    });
+}
+
+function renderQuestionNavigation() {
+    const tabsContainer = document.querySelector('#question-tabs');
+    if (!tabsContainer) return;
+
+    tabsContainer.innerHTML = Array.from({ length: MAX_QUESTIONS }, (_, index) => {
+        const number = index + 1;
+        return `<button type="button" class="question-step-btn${index === currentQuestionIndex ? ' active' : ''}" data-question-index="${number}">${number}</button>`;
+    }).join('');
+
+    updateQuestionView();
+}
+
+function updateQuestionView() {
+    const questionCards = Array.from(document.querySelectorAll('.question-card'));
+    questionCards.forEach((card, index) => {
+        card.classList.toggle('active', index === currentQuestionIndex);
+    });
+
+    const progressLabel = document.querySelector('.progress-label');
+    const progressCount = document.querySelector('.progress-answer-count');
+    if (progressLabel) {
+        progressLabel.textContent = `Questão ${currentQuestionIndex + 1} de ${MAX_QUESTIONS}`;
+    }
+    if (progressCount) {
+        progressCount.textContent = `Questões preenchidas: ${quizDraft.filter((q) => q.questionText.trim()).length}/${MAX_QUESTIONS}`;
+    }
+
+    const tabButtons = Array.from(document.querySelectorAll('.question-step-btn'));
+    tabButtons.forEach((button, index) => button.classList.toggle('active', index === currentQuestionIndex));
+
+    const prevBtn = document.querySelector('#prev-btn');
+    const nextBtn = document.querySelector('#next-btn');
+    if (prevBtn) prevBtn.disabled = currentQuestionIndex === 0;
+    if (nextBtn) nextBtn.disabled = currentQuestionIndex === MAX_QUESTIONS - 1;
+}
+
+function renderNavigationButtons() {
+    const navContainer = document.querySelector('#navigation-buttons');
+    if (!navContainer) return;
+
+    navContainer.innerHTML = `
+        <div class="navigation">
+            <button id="prev-btn" class="secondary-button" type="button">Anterior</button>
+            <button id="next-btn" class="secondary-button" type="button">Próxima</button>
+        </div>
+    `;
+}
+
+function previousQuestion() {
+    if (currentQuestionIndex > 0) {
+        currentQuestionIndex -= 1;
+        updateQuestionView();
     }
 }
 
-function addQuestionCard() {
-    const container = document.querySelector('#question-container');
-    if (!container) {
-        return;
+function nextQuestion() {
+    if (currentQuestionIndex < MAX_QUESTIONS - 1) {
+        currentQuestionIndex += 1;
+        updateQuestionView();
     }
-
-    const currentCount = container.querySelectorAll('.question-card').length;
-    if (currentCount >= 10) {
-        showFeedback('O quiz só pode conter exatamente 10 questões.', true);
-        return;
-    }
-
-    const nextIndex = currentCount + 1;
-    container.insertAdjacentHTML('beforeend', QUESTION_TEMPLATE(nextIndex));
 }
 
 async function handleQuizSubmit() {
@@ -137,8 +253,8 @@ async function handleQuizSubmit() {
     const theme = document.querySelector('#theme')?.value.trim() || '';
     const questionCards = Array.from(document.querySelectorAll('.question-card'));
 
-    if (!subject || !theme || questionCards.length === 0) {
-        showFeedback('Preencha o assunto, tema e pelo menos uma questão.', true);
+    if (!subject || !theme) {
+        showFeedback('Preencha a disciplina e o tema do quiz.', true);
         return;
     }
 
@@ -146,53 +262,49 @@ async function handleQuizSubmit() {
 
     for (let index = 0; index < questionCards.length; index++) {
         const card = questionCards[index];
-        const questionText = card.querySelector('.question-text')?.value.trim() || '';
-        const alternatives = Array.from(card.querySelectorAll('.alt-row')).map((altRow) => {
-            return {
-                label: altRow.querySelector('.alt-label')?.textContent.trim(),
-                text: altRow.querySelector('.alt-text')?.value.trim() || '',
-                isCorrect: altRow.querySelector('.alt-correct')?.checked || false
-            };
-        });
+        const draft = quizDraft[index];
+        const questionText = draft.questionText.trim();
+        const alternatives = draft.alternatives;
 
         if (!questionText) {
             showFeedback(`Digite o texto da questão ${index + 1}.`, true);
+            currentQuestionIndex = index;
+            updateQuestionView();
             return;
         }
 
-        if (alternatives.length !== 5) {
-            showFeedback(`Cada questão deve ter exatamente 5 alternativas.`, true);
-            return;
-        }
-
-        if (alternatives.some((alt) => !alt.text)) {
+        if (alternatives.some((alt) => !alt.text.trim())) {
             showFeedback(`Preencha todas as alternativas da questão ${index + 1}.`, true);
+            currentQuestionIndex = index;
+            updateQuestionView();
             return;
         }
 
         if (!alternatives.some((alt) => alt.isCorrect)) {
-            showFeedback(`Marque uma alternativa correta para a questão ${index + 1}.`, true);
+            showFeedback(`Marque a alternativa correta da questão ${index + 1}.`, true);
+            currentQuestionIndex = index;
+            updateQuestionView();
             return;
         }
 
         questions.push({
             questionText,
             questionOrder: index + 1,
-            alternatives
+            alternatives: alternatives.map((alt) => ({
+                label: alt.label,
+                text: alt.text.trim(),
+                isCorrect: alt.isCorrect
+            }))
         });
     }
 
-    if (questions.length === 10) {
-        try {
-            await apiService.post('/api/quiz/teacher-quizzes', { subject, theme, questions });
-            showFeedback('Quiz criado com sucesso!', false);
-            resetQuizForm();
-        } catch (error) {
-            console.error('Erro ao criar quiz:', error);
-            showFeedback('Não foi possível criar o quiz. Verifique os dados e tente novamente.', true);
-        }
-    } else {
-        showFeedback('O quiz deve conter exatamente 10 questões.', true);
+    try {
+        await apiService.post('/api/quiz/teacher-quizzes', { subject, theme, questions });
+        showFeedback('Quiz criado com sucesso!', false);
+        resetQuizForm();
+    } catch (error) {
+        console.error('Erro ao criar quiz:', error);
+        showFeedback('Não foi possível criar o quiz. Verifique os dados e tente novamente.', true);
     }
 }
 
@@ -209,9 +321,23 @@ function showFeedback(message, isError = false) {
 function resetQuizForm() {
     document.querySelector('#subject').value = '';
     document.querySelector('#theme').value = '';
-    const container = document.querySelector('#question-container');
+    quizDraft = createEmptyQuizDraft();
+    currentQuestionIndex = 0;
 
-    if (container) {
-        container.innerHTML = QUESTION_TEMPLATE(1);
-    }
-};
+    const questionCards = Array.from(document.querySelectorAll('.question-card'));
+    questionCards.forEach((card) => {
+        const index = Number(card.dataset.questionIndex) - 1;
+        const textarea = card.querySelector('.question-text');
+        if (textarea) textarea.value = '';
+        ALTERNATIVE_LABELS.forEach((label, altIndex) => {
+            const input = card.querySelector(`#alt-text-${index + 1}-${altIndex}`);
+            if (input) input.value = '';
+        });
+        const radios = Array.from(card.querySelectorAll('.alt-correct'));
+        radios.forEach((radio) => { radio.checked = false; });
+    });
+
+    renderQuestionNavigation();
+    renderNavigationButtons();
+}
+

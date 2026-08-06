@@ -152,10 +152,11 @@ export const getPlayedQuizzesByStudentId = async (studentId) => {
 export const getLeaderboardGeneral = async (limit = 10) => {
     const result = await db.query(
         `SELECT s.id_student, s.username, s.global_points,
+                COALESCE(s.profile_photo, 'default.svg') AS profile_photo,
                 COUNT(DISTINCT pq.id_quiz) AS quizzes_completed
            FROM students s
            LEFT JOIN played_quizzes pq ON pq.id_student = s.id_student
-          GROUP BY s.id_student, s.username, s.global_points
+          GROUP BY s.id_student, s.username, s.global_points, s.profile_photo
           ORDER BY s.global_points DESC, quizzes_completed DESC, s.username ASC
           LIMIT $1`,
         [limit]
@@ -176,12 +177,13 @@ export const getQuizSubjects = async () => {
 export const getLeaderboardBySubject = async (subject, limit = 10) => {
     const result = await db.query(
         `SELECT s.id_student, s.username,
+                COALESCE(s.profile_photo, 'default.svg') AS profile_photo,
                 COALESCE(SUM(pq.total_points), 0) AS subject_points,
                 COUNT(DISTINCT pq.id_quiz) AS quizzes_completed
            FROM students s
            LEFT JOIN played_quizzes pq ON pq.id_student = s.id_student
            LEFT JOIN quizzes q ON q.id_quiz = pq.id_quiz AND q.subject = $1
-          GROUP BY s.id_student, s.username
+          GROUP BY s.id_student, s.username, s.profile_photo
           ORDER BY subject_points DESC, quizzes_completed DESC, s.username ASC
           LIMIT $2`,
         [subject, limit]
@@ -192,11 +194,12 @@ export const getLeaderboardBySubject = async (subject, limit = 10) => {
 export const getLeaderboardQuizzesCompleted = async (limit = 10) => {
     const result = await db.query(
         `SELECT s.id_student, s.username,
+                COALESCE(s.profile_photo, 'default.svg') AS profile_photo,
                 COUNT(DISTINCT pq.id_quiz) AS quizzes_completed,
                 COALESCE(SUM(pq.total_points), 0) AS total_points
            FROM students s
            LEFT JOIN played_quizzes pq ON pq.id_student = s.id_student
-          GROUP BY s.id_student, s.username
+          GROUP BY s.id_student, s.username, s.profile_photo
           ORDER BY quizzes_completed DESC, total_points DESC, s.username ASC
           LIMIT $1`,
         [limit]
@@ -215,9 +218,14 @@ export const insertDoAfterQuizForStudent = async (studentId, quizId) => {
 
 export const getDoAfterQuizzesByStudentId = async (studentId) => {
     const result = await db.query(
-        `SELECT id_quiz 
-           FROM do_after
-           WHERE id_student = $1`,
+        `SELECT da.id_quiz AS id_quiz,
+                q.subject AS subject,
+                q.theme AS theme,
+                q.created_at AS created_at
+           FROM do_after da
+           JOIN quizzes q ON da.id_quiz = q.id_quiz
+           WHERE da.id_student = $1
+           ORDER BY q.created_at DESC`,
         [studentId]
     );
     return result.rows;

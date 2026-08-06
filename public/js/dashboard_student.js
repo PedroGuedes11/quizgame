@@ -65,7 +65,7 @@ function calculateLevelFromPoints(points) {
     const normalizedPoints = Number.isFinite(points) ? Math.max(0, points) : 0;
     let level = 1;
 
-    for (let candidate = 2; candidate <= 20; candidate += 1) {
+    for (let candidate = 2; candidate <= 10; candidate += 1) {
         if (normalizedPoints >= pointsRequiredForLevel(candidate)) {
             level = candidate;
         } else {
@@ -197,7 +197,7 @@ export const renderStudentDashboard = async () => {
     const timerText = user.next_energy_seconds ? `Próximo ponto em ${formatSeconds(user.next_energy_seconds)}` : 'Energia já está no máximo';
 
     const level = calculateLevelFromPoints(displayPoints);
-    const badgeLevel = Math.min(Math.max(level, 1), 20);
+    const badgeLevel = Math.min(Math.max(level, 1), 10);
     const badgePath = `../img/badges/badge_level${badgeLevel}.png`;
 
     const html = `

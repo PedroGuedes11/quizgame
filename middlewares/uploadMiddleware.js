@@ -1,9 +1,20 @@
+import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
 
+const defaultProfilesDir = path.join(process.cwd(), 'public', 'img', 'profiles');
+const profilesDir = process.env.UPLOAD_DIR
+    ? path.resolve(process.env.UPLOAD_DIR)
+    : defaultProfilesDir;
+
+fs.mkdirSync(profilesDir, { recursive: true });
+
+export const profilesUploadDir = profilesDir;
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, path.join(process.cwd(), 'public', 'img', 'profiles'));
+        fs.mkdirSync(profilesDir, { recursive: true });
+        cb(null, profilesDir);
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);

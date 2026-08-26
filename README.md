@@ -87,8 +87,6 @@ public/js/
 - **Manutenibilidade**: Separação clara de responsabilidades
 - **Experiência**: Formulários modernos com validação em tempo real
 
-Para mais detalhes, consulte `public/js/README.md`.
-
 ## Estrutura do Projeto
 
 ```
@@ -110,6 +108,10 @@ quizgame/
 │   ├── authRoutes.js
 │   ├── quizRoutes.js
 │   └── userRoutes.js
+├── scripts/               # Utilitários e tarefas administrativas
+│   ├── cleanup_old_quizzes.js
+│   ├── normalize_subjects.js
+│   └── wipe_all_quiz_data.js
 └── public/                # Arquivos estáticos
     ├── html/              # Páginas HTML
     ├── css/               # Estilos

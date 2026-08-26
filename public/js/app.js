@@ -6,7 +6,6 @@ import { renderRules } from './rules.js';
 import { renderStudentDashboard } from './dashboard_student.js';
 import { renderTeacherDashboard } from './dashboard_teacher.js';
 import { renderTeacherQuizzes } from './teacher_quizzes.js';
-import { renderRegisterLogin } from './register_login.js';
 import { renderQuizList } from './quiz_list.js';
 import { renderQuiz } from './quiz.js';
 import { renderRanking } from './ranking.js';
@@ -36,7 +35,6 @@ class AppOrchestrator {
             'rules.html': renderRules,
             'dashboard_student.html': renderStudentDashboard,
             'dashboard_teacher.html': renderTeacherDashboard,
-            'register_login.html': renderRegisterLogin,
             'teacher_quizzes.html': renderTeacherQuizzes,
             'quiz.html': renderQuiz,
             'quiz_list.html': renderQuizList,
@@ -374,7 +372,6 @@ class AppOrchestrator {
 
         switch (this.currentPage) {
             case 'register_login.html':
-                await this.renderPageContent();
                 this.initAuth();
                 break;
             case 'quiz.html':

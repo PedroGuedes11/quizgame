@@ -1,10 +1,10 @@
-/* Global retro theme using VT323 (console/arcade feel) */
-@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+/* Global retro monospace theme using Share Tech Mono */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
 
 :root {
     color-scheme: dark;
-    font-family: 'VT323', 'Courier New', Courier, monospace;
-    font-size: 13px;
+    font-family: 'Share Tech Mono', 'Courier New', Courier, monospace;
+    font-size: 24px;
     --bg: #d4a500; /* amarelo escuro: fundo geral */
     --card-bg: #f5e7c9; /* bege para cards */
     --panel: #0f3d9c;

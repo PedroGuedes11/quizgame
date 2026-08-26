@@ -57,9 +57,10 @@ export const renderTeacherQuizzes = () => {
             </div>
 
             <div class="teacher-quizzes-grid quiz-creator-grid">
-                <div class="quiz-creator-card">
+                    <div class="quiz-creator-card">
                     <h2>Novo quiz</h2>
-                    <div id="quiz-feedback" class="quiz-feedback"></div>
+                    <div id="quiz-instructions" class="info-text">Preencha todas as 10 questões, cada uma com 5 alternativas, e marque uma alternativa correta antes de clicar em "Salvar quiz".</div>
+                    <div id="quiz-feedback" class="quiz-feedback" role="status" aria-live="polite"></div>
                     <form id="teacher-quiz-form">
                         <div class="form-row">
                             <label for="subject">Disciplina</label>
@@ -258,6 +259,25 @@ async function handleQuizSubmit() {
         return;
     }
 
+    // Quick pre-check: ensure every question has text, all alternatives filled and one marked as correct
+    const validQuestionsCount = quizDraft.filter((q) => {
+        const hasText = q.questionText.trim();
+        const allAltsFilled = q.alternatives.every((a) => a.text.trim());
+        const hasOneCorrect = q.alternatives.some((a) => a.isCorrect);
+        return hasText && allAltsFilled && hasOneCorrect;
+    }).length;
+
+    if (validQuestionsCount !== MAX_QUESTIONS) {
+        showFeedback('Por favor, preencha todas as 10 questões com 5 alternativas cada e marque a alternativa correta antes de salvar.', true);
+        // Jump to first incomplete question to help the user
+        const firstIncomplete = quizDraft.findIndex((q) => !(q.questionText.trim() && q.alternatives.every((a) => a.text.trim()) && q.alternatives.some((a) => a.isCorrect)));
+        if (firstIncomplete >= 0) {
+            currentQuestionIndex = firstIncomplete;
+            updateQuestionView();
+        }
+        return;
+    }
+
     const questions = [];
 
     for (let index = 0; index < questionCards.length; index++) {
@@ -313,9 +333,21 @@ function showFeedback(message, isError = false) {
     if (!feedback) {
         return;
     }
-
     feedback.textContent = message;
     feedback.className = isError ? 'quiz-feedback error' : 'quiz-feedback success';
+    feedback.setAttribute('role', isError ? 'alert' : 'status');
+    feedback.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+
+    // Auto-hide success messages after 4 seconds
+    if (!isError) {
+        setTimeout(() => {
+            const f = document.querySelector('#quiz-feedback');
+            if (f) {
+                f.textContent = '';
+                f.className = 'quiz-feedback';
+            }
+        }, 4000);
+    }
 }
 
 function resetQuizForm() {

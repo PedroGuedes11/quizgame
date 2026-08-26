@@ -1,6 +1,23 @@
 import { DOMUtils } from './utils/dom.js';
 import { apiService } from './services/api.js';
 
+const DEFAULT_AVATAR = '/img/profiles/default.svg';
+
+const renderUserAvatarCell = (username, profilePhoto) => {
+    const avatar = getRankingAvatarUrl(profilePhoto);
+    return `
+        <div class="ranking-user-cell">
+            <img
+                class="ranking-user-avatar"
+                src="${avatar}"
+                alt="${username}"
+                onerror="if (!this.dataset.fallbackApplied) { this.dataset.fallbackApplied = 'true'; this.src='${DEFAULT_AVATAR}'; }"
+            />
+            <span>${username}</span>
+        </div>
+    `;
+};
+
 const createTable = (columns, rows) => {
     if (!rows || rows.length === 0) {
         return '<p class="ranking-empty">Nenhum resultado disponível.</p>';
@@ -37,7 +54,7 @@ const renderError = (message) => `
 
 const getRankingAvatarUrl = (profilePhoto) => {
     if (!profilePhoto) {
-        return '/img/profiles/default.svg';
+        return DEFAULT_AVATAR;
     }
 
     const normalized = profilePhoto.trim();
@@ -67,14 +84,7 @@ const loadGeneralRanking = async () => {
                 {
                     label: 'Aluno',
                     key: 'username',
-                    render: (row) => {
-                        const avatar = getRankingAvatarUrl(row.profile_photo);
-                        return `
-                            <div class="ranking-user-cell">
-                                <img class="ranking-user-avatar" src="${avatar}" alt="${row.username}" onerror="this.src='/img/profiles/default.svg'" />
-                                <span>${row.username}</span>
-                            </div>`;
-                    }
+                    render: (row) => renderUserAvatarCell(row.username, row.profile_photo)
                 },
                 { label: 'Pontos gerais', key: 'global_points' },
                 { label: 'Quizzes completos', key: 'quizzes_completed' }
@@ -123,14 +133,7 @@ const loadSubjectRanking = async (subject) => {
                     {
                         label: 'Aluno',
                         key: 'username',
-                        render: (row) => {
-                            const avatar = getRankingAvatarUrl(row.profile_photo);
-                            return `
-                                <div class="ranking-user-cell">
-                                    <img class="ranking-user-avatar" src="${avatar}" alt="${row.username}" onerror="this.src='/img/profiles/default.svg'" />
-                                    <span>${row.username}</span>
-                                </div>`;
-                        }
+                        render: (row) => renderUserAvatarCell(row.username, row.profile_photo)
                     },
                     { label: 'Pontos na matéria', key: 'subject_points' },
                     { label: 'Quizzes completos', key: 'quizzes_completed' }
@@ -157,14 +160,7 @@ const loadCompletedRanking = async () => {
                 {
                     label: 'Aluno',
                     key: 'username',
-                    render: (row) => {
-                        const avatar = getRankingAvatarUrl(row.profile_photo);
-                        return `
-                            <div class="ranking-user-cell">
-                                <img class="ranking-user-avatar" src="${avatar}" alt="${row.username}" onerror="this.src='/img/profiles/default.svg'" />
-                                <span>${row.username}</span>
-                            </div>`;
-                    }
+                    render: (row) => renderUserAvatarCell(row.username, row.profile_photo)
                 },
                 { label: 'Quizzes concluídos', key: 'quizzes_completed' },
                 { label: 'Pontos totais', key: 'total_points' }

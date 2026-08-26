@@ -1,9 +1,9 @@
-/* Global retro 8-bit theme */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+/* Global retro theme using VT323 (console/arcade feel) */
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
 
 :root {
     color-scheme: dark;
-    font-family: 'Press Start 2P', 'Courier New', Courier, monospace;
+    font-family: 'VT323', 'Courier New', Courier, monospace;
     font-size: 13px;
     --bg: #d4a500; /* amarelo escuro: fundo geral */
     --card-bg: #f5e7c9; /* bege para cards */

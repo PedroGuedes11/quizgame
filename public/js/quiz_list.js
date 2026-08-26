@@ -113,7 +113,7 @@ async function loadQuizList() {
         const queryString = params.toString();
         const response = await apiService.get(`/api/quiz/search${queryString ? `?${queryString}` : ''}`);
         const quizzes = response.quizzes || [];
-        renderQuizCards(quizzes);
+        await renderQuizCards(quizzes);
     } catch (error) {
         console.error('Erro ao buscar quizzes:', error);
         resultsContainer.innerHTML = '<p>Falha ao buscar quizzes. Tente novamente.</p>';
@@ -129,7 +129,7 @@ async function fetchUser() {
     }
 };
 
-function renderQuizCards(quizzes) {  
+async function renderQuizCards(quizzes) {  
     const container = document.querySelector('#quiz-list-results');
     if (!container) {
         return;
@@ -140,11 +140,27 @@ function renderQuizCards(quizzes) {
         return;
     }
 
+    const user = await fetchUser();
+    const isTeacher = user && user.type === 'teacher';
+
     container.innerHTML = quizzes.map((quiz) => {
         const subject = quiz.subject || 'Matéria não disponível';
         const theme = quiz.theme || 'Tema não disponível';
         const teacher = quiz.teacher_username || 'Desconhecido';
         const idQuiz = quiz.id_quiz || '---';
+        const actionsHtml = isTeacher
+            ? `
+                <div class="quiz-card-actions">
+                    <span class="info-text">Apenas estudantes podem iniciar quizzes.</span>
+                </div>
+            `
+            : `
+                <div class="quiz-card-actions">
+                    <a href="/html/quiz.html?quizId=${idQuiz}"><button class="primary-button">Iniciar</button></a>
+                    <button class="secondary-button do-after-btn" data-quiz-id="${idQuiz}">Fazer mais tarde</button>
+                </div>
+            `;
+
         return `
             <article class="quiz-card quiz-card-modern">
                 <div class="quiz-card-header">
@@ -157,10 +173,7 @@ function renderQuizCards(quizzes) {
                     <div class="quiz-card-line"><span>Professor</span><strong>${teacher}</strong></div>
                     <div class="quiz-card-line"><span>Matéria</span><strong>${subject}</strong></div>
                 </div>
-                <div class="quiz-card-actions">
-                    <a href="/html/quiz.html?quizId=${idQuiz}"><button class="primary-button">Iniciar</button></a>
-                    <button class="secondary-button do-after-btn" data-quiz-id="${idQuiz}">Fazer mais tarde</button>
-                </div>
+                ${actionsHtml}
             </article>`;
     }).join('');
 

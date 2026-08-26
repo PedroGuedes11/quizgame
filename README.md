@@ -103,13 +103,11 @@ npm install
 PORT=3000
 FRONTEND_URL=http://localhost:3000
 SECRET_KEY=sua-chave-secreta
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=quizgame
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/quizgame
 UPLOAD_DIR=./public/img/profiles
 ```
+
+> Em desenvolvimento local, a `DATABASE_URL` é a forma mais simples e previsível de configurar a conexão. Se preferir usar o formato antigo, ainda é aceito via `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME`.
 
 4. Crie o banco PostgreSQL:
 
@@ -163,20 +161,18 @@ Importante para produção:
 
 ## Deploy no Render
 
-Para deploy no Render, configure as variáveis de ambiente:
+Para deploy no Render, configure as variáveis de ambiente utilizando a URL interna do PostgreSQL fornecida pelo serviço de banco:
 
 ```env
 PORT=10000
 FRONTEND_URL=https://seu-frontend.com
 SECRET_KEY=sua-chave-secreta
-DB_HOST=host-do-banco
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=sua-senha
-DB_NAME=quizgame
-UPLOAD_DIR=/var/data/profiles
+DATABASE_URL=postgres://<usuario>:<senha>@<host-interno>:5432/<database>?sslmode=require
+UPLOAD_DIR=/tmp/profiles
 ```
 
+> Em Render, prefira usar `DATABASE_URL` em vez de montar a conexão manualmente com `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME`. A URL interna do Postgres do Render já inclui as credenciais e o host corretos.
+>
 > Observação: em Render, arquivos locais em disco podem não persistir entre deploys ou reinicializações sem volume persistente. Para uso real em produção, o ideal é usar um volume persistente ou um storage externo.
 
 ## Endpoints principais

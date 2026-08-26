@@ -2,19 +2,41 @@ import fs from 'fs';
 import multer from 'multer';
 import path from 'path';
 
-const defaultProfilesDir = path.join(process.cwd(), 'public', 'img', 'profiles');
-const profilesDir = process.env.UPLOAD_DIR
-    ? path.resolve(process.env.UPLOAD_DIR)
-    : defaultProfilesDir;
+const getWritableProfilesDir = () => {
+    const candidates = [
+        process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : null,
+        path.join(process.cwd(), 'public', 'img', 'profiles'),
+        path.join(process.cwd(), 'tmp', 'profiles')
+    ].filter(Boolean);
 
-fs.mkdirSync(profilesDir, { recursive: true });
+    for (const candidate of candidates) {
+        try {
+            fs.mkdirSync(candidate, { recursive: true, mode: 0o755 });
+            fs.accessSync(candidate, fs.constants.W_OK);
+            return candidate;
+        } catch (error) {
+            // tenta o próximo diretório
+        }
+    }
+
+    return path.join(process.cwd(), 'public', 'img', 'profiles');
+};
+
+const profilesDir = getWritableProfilesDir();
+if (process.env.UPLOAD_DIR && profilesDir !== path.resolve(process.env.UPLOAD_DIR)) {
+    console.warn(`[upload] Diretório de upload configurado indisponível. Usando fallback: ${profilesDir}`);
+}
 
 export const profilesUploadDir = profilesDir;
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        fs.mkdirSync(profilesDir, { recursive: true });
-        cb(null, profilesDir);
+        try {
+            fs.mkdirSync(profilesDir, { recursive: true, mode: 0o755 });
+            cb(null, profilesDir);
+        } catch (error) {
+            cb(error);
+        }
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);

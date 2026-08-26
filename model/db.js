@@ -5,11 +5,10 @@ dotenv.config();
 
 const { Pool } = pkg;
 
+const databaseUrl = process.env.DATABASE_URL;
 const isProduction = process.env.NODE_ENV === 'production';
-const databaseUrl = process.env.DATABASE_URL || '';
-
-// Enable SSL only in production and when the database host is not localhost
-const shouldUseSsl = isProduction && !/localhost|127\.0\.0\.1/.test(databaseUrl);
+const isLocalhostUrl = /localhost|127\.0\.0\.1/.test(databaseUrl);
+const shouldUseSsl = (isProduction || databaseUrl.includes('render.com')) && !isLocalhostUrl;
 
 const db = new Pool({
     connectionString: databaseUrl,

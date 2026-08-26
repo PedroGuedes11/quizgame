@@ -5,13 +5,21 @@ dotenv.config();
 
 const { Pool } = pkg;
 
-const databaseUrl = process.env.DATABASE_URL;
 const isProduction = process.env.NODE_ENV === 'production';
-const isLocalhostUrl = /localhost|127\.0\.0\.1/.test(databaseUrl);
-const shouldUseSsl = (isProduction || databaseUrl.includes('render.com')) && !isLocalhostUrl;
+
+// Prefer standard DATABASE_URL, accept some common alternate names
+const databaseUrl = process.env.DATABASE_URL || process.env.RENDER_DATABASE_URL || process.env.POSTGRES_URL || process.env.POSTGRESQL_URL || '';
+
+if (isProduction && !databaseUrl) {
+    console.error('\nFATAL: running in production but no DATABASE_URL found.\nPlease set the `DATABASE_URL` environment variable to your Postgres connection string (Render provides this for managed databases).\nExample: DATABASE_URL=postgres://user:pass@host:5432/dbname\n');
+    process.exit(1);
+}
+
+const isLocalhostUrl = databaseUrl ? /localhost|127\.0\.0\.1/.test(databaseUrl) : false;
+const shouldUseSsl = (isProduction || (databaseUrl && databaseUrl.includes('render.com'))) && !isLocalhostUrl;
 
 const db = new Pool({
-    connectionString: databaseUrl,
+    connectionString: databaseUrl || undefined,
     ssl: shouldUseSsl ? { rejectUnauthorized: false } : false
 });
 

@@ -1,5 +1,6 @@
 import { apiService } from './services/api.js';
 import { DOMUtils } from './utils/dom.js';
+import { showFeedbackModal } from './components/Modal.js';
 
 let availableSubjects = [];
 
@@ -190,7 +191,13 @@ async function renderQuizCards(quizzes) {
                 window.location.href = '/html/register_login.html';
                 return;
             }
-            await apiService.post('/api/quiz/do-after', { userId: user.id_student, quizId });
+            try {
+                await apiService.post('/api/quiz/do-after', { userId: user.id_student, quizId });
+                showFeedbackModal({ title: 'Quiz salvo', message: 'O quiz foi marcado para você fazer mais tarde.' });
+            } catch (error) {
+                console.error('Erro ao marcar quiz para depois:', error);
+                showFeedbackModal({ title: 'Falha ao salvar quiz', message: error.message || 'Não foi possível marcar o quiz para depois.', type: 'error' });
+            }
         });
     });
 }

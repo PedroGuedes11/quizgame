@@ -3,7 +3,9 @@ import { DOMUtils } from './utils/dom.js';
 import {
     renderQuestionCard,
     renderNavigationButtons,
-    getTimerHtml
+    getTimerHtml,
+    showFeedbackModal,
+    showConfirmationModal
 } from './components/index.js';
 
 let quizData = null;
@@ -27,8 +29,9 @@ export const renderQuiz = async () => {
     try {
         await consumeEnergyOnOpen();
     } catch (error) {
-        alert(error.message || 'Não foi possível iniciar o quiz. Verifique sua energia.');
-        window.location.href = '/html/dashboard_student.html';
+        showFeedbackModal({ title: 'Não foi possível iniciar', message: error.message || 'Verifique sua energia.', type: 'error', onClose: () => {
+            window.location.href = '/html/dashboard_student.html';
+        }});
         return;
     }
 
@@ -36,8 +39,9 @@ export const renderQuiz = async () => {
     console.debug('Quiz data loaded:', quizData);
     if (!quizData || !Array.isArray(quizData.questions) || quizData.questions.length === 0) {
         console.error('Quiz inválido ou sem perguntas:', quizData);
-        alert('Não foi possível carregar o quiz. Verifique se ele existe.');
-        window.location.href = '/html/quiz_list.html';
+        showFeedbackModal({ title: 'Quiz indisponível', message: 'Não foi possível carregar o quiz. Verifique se ele existe.', type: 'error', onClose: () => {
+            window.location.href = '/html/quiz_list.html';
+        }});
         return;
     }
     selectedAlternatives = new Array(quizData.questions.length).fill(null);
@@ -274,7 +278,11 @@ async function submitQuiz() {
 
     const unanswered = selectedAlternatives.filter((alt) => alt == null).length;
     if (unanswered > 0) {
-        if (!confirm(`Você tem ${unanswered} questões não respondidas. Deseja submeter mesmo assim?`)) {
+        const shouldSubmit = await showConfirmationModal({
+            title: 'Questões não respondidas',
+            message: `Você tem ${unanswered} questões não respondidas. Deseja submeter mesmo assim?`
+        });
+        if (!shouldSubmit) {
             return;
         }
     }
@@ -319,12 +327,19 @@ async function submitQuiz() {
             console.warn('Falha ao atualizar perfil pós-submit:', e);
         }
 
-        window.location.href = '/html/dashboard_student.html';
+        const score = response?.score ?? correctCount;
+        showFeedbackModal({
+            title: 'Quiz finalizado',
+            message: `Você acertou ${correctCount} de ${quizData.questions.length} questões e obteve ${score} pontos.`,
+            onClose: () => {
+                window.location.href = '/html/dashboard_student.html';
+            }
+        });
     } catch (error) {
         if (error.message && error.message.includes('401')) {
             return;
         }
-        alert('Erro ao submeter o quiz: ' + error.message);
+        showFeedbackModal({ title: 'Falha ao finalizar quiz', message: error.message || 'Não foi possível registrar suas respostas.', type: 'error' });
     }
 }
 

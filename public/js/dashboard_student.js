@@ -1,5 +1,6 @@
 import { DOMUtils } from './utils/dom.js';
 import { apiService } from './services/api.js';
+import { showFeedbackModal } from './components/Modal.js';
 
 const MAX_ENERGY = 5;
 let energyCountdownInterval = null;
@@ -135,9 +136,11 @@ document.addEventListener('click', async (e) => {
     }
     try {
         await apiService.delete(`/api/quiz/do-after/${user.id_student}/${quizId}`);
+        showFeedbackModal({ title: 'Quiz removido', message: 'O quiz foi removido da lista de fazer mais tarde.' });
         await renderStudentDashboard();
     } catch (err) {
         console.error('Erro ao remover quiz da lista:', err);
+        showFeedbackModal({ title: 'Falha ao remover quiz', message: err.message || 'Não foi possível remover o quiz da lista.', type: 'error' });
     }
 });
 
@@ -349,12 +352,14 @@ export const renderStudentDashboard = async () => {
                 if (msg) {
                     msg.textContent = response?.message || 'Perfil atualizado com sucesso.';
                 }
+                showFeedbackModal({ title: 'Perfil atualizado', message: response?.message || 'Seus dados foram atualizados com sucesso.' });
                 await renderStudentDashboard();
             } catch (err) {
                 console.error('Erro ao atualizar perfil:', err);
                 if (msg) {
                     msg.textContent = err.message || 'Erro ao atualizar perfil.';
                 }
+                showFeedbackModal({ title: 'Falha ao atualizar perfil', message: err.message || 'Não foi possível atualizar seus dados.', type: 'error' });
             }
         });
     }

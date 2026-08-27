@@ -1,6 +1,7 @@
 import { apiService } from '../services/api.js';
 import { DOMUtils } from '../utils/dom.js';
 import { ValidationUtils } from "../utils/validation.js";
+import { showFeedbackModal } from '../components/Modal.js';
 
 export class AuthModule {
     constructor() {
@@ -156,6 +157,7 @@ export class AuthModule {
             this.handleSuccessfulAuth(response.userType, response.token);
         } catch (error) {
             ValidationUtils.showError('#login-error', error.message || 'Erro no login');
+            showFeedbackModal({ title: 'Falha no login', message: error.message || 'Não foi possível entrar. Verifique seus dados.', type: 'error' });
         }
     }
 
@@ -166,19 +168,27 @@ export class AuthModule {
         const userType = document.querySelector('input[name="user-type"]:checked')?.value;
 
         if (!ValidationUtils.isValidUsername(username)) {
-            ValidationUtils.showError('#register-error', 'Username deve ter 3-100 caracteres');
+            const message = 'Username deve ter 3-100 caracteres';
+            ValidationUtils.showError('#register-error', message);
+            showFeedbackModal({ title: 'Falha no registro', message, type: 'error' });
             return;
         }
         if (!ValidationUtils.isValidEmail(email)) {
-            ValidationUtils.showError('#register-error', 'Email inválido');
+            const message = 'Email inválido';
+            ValidationUtils.showError('#register-error', message);
+            showFeedbackModal({ title: 'Falha no registro', message, type: 'error' });
             return;
         }
         if (!ValidationUtils.isValidPassword(password)) {
-            ValidationUtils.showError('#register-error', 'Senha deve ter pelo menos 6 caracteres e incluir número e letra');
+            const message = 'Senha deve ter pelo menos 6 caracteres e incluir número e letra';
+            ValidationUtils.showError('#register-error', message);
+            showFeedbackModal({ title: 'Falha no registro', message, type: 'error' });
             return;
         }
         if (!userType) {
-            ValidationUtils.showError('#register-error', 'Selecione o tipo de usuário');
+            const message = 'Selecione o tipo de usuário';
+            ValidationUtils.showError('#register-error', message);
+            showFeedbackModal({ title: 'Falha no registro', message, type: 'error' });
             return;
         }
 
@@ -199,10 +209,14 @@ export class AuthModule {
             }
 
             await apiService.post('/api/auth/register', body);
-            alert('Registro realizado! Faça login.');
-            this.showLoginForm();
+            showFeedbackModal({
+                title: 'Registro realizado',
+                message: 'Sua conta foi criada com sucesso. Faça login para continuar.',
+                onClose: () => this.showLoginForm()
+            });
         } catch (error) {
             ValidationUtils.showError('#register-error', error.message || 'Erro no registro');
+            showFeedbackModal({ title: 'Falha no registro', message: error.message || 'Não foi possível criar sua conta.', type: 'error' });
         }
     }
 
@@ -214,12 +228,15 @@ export class AuthModule {
         localStorage.setItem('userType', normalizedType);
         this.currentUser = { type: normalizedType };
 
-        if (normalizedType === 'student') {
-            window.location.href = '/html/dashboard_student.html';
-            return;
-        }
-
-        window.location.href = '/html/dashboard_teacher.html';
+        showFeedbackModal({
+            title: 'Login realizado',
+            message: 'Acesso confirmado. Você será redirecionado para o seu painel.',
+            onClose: () => {
+                window.location.href = normalizedType === 'student'
+                    ? '/html/dashboard_student.html'
+                    : '/html/dashboard_teacher.html';
+            }
+        });
     }
 
     logout(silent = false) {

@@ -1,5 +1,6 @@
 import { apiService } from './services/api.js';
 import { DOMUtils } from './utils/dom.js';
+import { showFeedbackModal } from './components/Modal.js';
 
 const MAX_QUESTIONS = 10;
 const ALTERNATIVE_LABELS = ['A', 'B', 'C', 'D', 'E'];
@@ -337,6 +338,11 @@ function showFeedback(message, isError = false) {
     feedback.className = isError ? 'quiz-feedback error' : 'quiz-feedback success';
     feedback.setAttribute('role', isError ? 'alert' : 'status');
     feedback.setAttribute('aria-live', isError ? 'assertive' : 'polite');
+    showFeedbackModal({
+        title: isError ? 'Falha ao criar quiz' : 'Quiz criado com sucesso',
+        message,
+        type: isError ? 'error' : 'success'
+    });
 
     // Auto-hide success messages after 4 seconds
     if (!isError) {

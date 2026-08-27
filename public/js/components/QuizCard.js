@@ -1,5 +1,6 @@
 import { DOMUtils } from '../utils/dom.js';
 import { apiService } from '../services/api.js';
+import { showFeedbackModal } from './Modal.js';
 
 export function renderQuizCard(quiz, userId) {
   
@@ -25,8 +26,10 @@ export function renderQuizCard(quiz, userId) {
   doAfterButton.addEventListener('click', async () => {
     try {
       await apiService.post('/api/quiz/do-after', { quizId: quiz.id_quiz, userId });
+      showFeedbackModal({ title: 'Quiz salvo', message: 'O quiz foi marcado para você fazer mais tarde.' });
     } catch (error) {
       console.error('Erro ao marcar quiz para fazer depois:', error);
+      showFeedbackModal({ title: 'Falha ao salvar quiz', message: error.message || 'Não foi possível marcar o quiz para depois.', type: 'error' });
     }
   });
 

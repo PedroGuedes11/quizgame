@@ -18,7 +18,7 @@ export const renderHomepage = () => {
             </div>
             <div class="homepage-card stat-card">
                 <h3>10 questões</h3>
-                <p>Cada quiz contém 10 perguntas com 4 alternativas a escolher.</p>
+                <p>Cada quiz contém 10 perguntas com 5 alternativas a escolher.</p>
             </div>
             <div class="homepage-card stat-card">
                 <h3>1 hora</h3>

@@ -11,7 +11,7 @@ export const renderRules = () => {
         <section class="rules-grid">
             <div class="rule-card">
                 <h3>Formato dos quizzes</h3>
-                <p>Cada quiz conta com 10 questões e 4 alternativas por pergunta. A pontuação considera precisão e velocidade.</p>
+                <p>Cada quiz conta com 10 questões e 5 alternativas por pergunta. A pontuação considera precisão e velocidade.</p>
             </div>
             <div class="rule-card">
                 <h3>Uso de energia</h3>

@@ -20,7 +20,7 @@ export const renderAbout = () => {
             <div class="feature-card wide-card">
                 <h3>Como funciona</h3>
                 <ul>
-                    <li>Cada quiz tem 10 questões com 4 alternativas.</li>
+                    <li>Cada quiz tem 10 questões com 5 alternativas.</li>
                     <li>Responda as perguntas com rapidez para ganhar mais pontos.</li>
                     <li>As pontuações são atualizadas automaticamente no ranking.</li>
                 </ul>

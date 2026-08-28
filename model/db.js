@@ -169,8 +169,12 @@ export const createTables = async () => {
 
     // Ensure profile_photo column exists for students and teachers (default neutral image)
     await db.query(`
-        ALTER TABLE students ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(255) DEFAULT 'default.svg';
-        ALTER TABLE teachers ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(255) DEFAULT 'default.svg';
+        ALTER TABLE students ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(500);
+        ALTER TABLE teachers ADD COLUMN IF NOT EXISTS profile_photo VARCHAR(500);
+        ALTER TABLE students ALTER COLUMN profile_photo TYPE VARCHAR(500);
+        ALTER TABLE teachers ALTER COLUMN profile_photo TYPE VARCHAR(500);
+        ALTER TABLE students ALTER COLUMN profile_photo DROP DEFAULT;
+        ALTER TABLE teachers ALTER COLUMN profile_photo DROP DEFAULT;
     `);
 };
 

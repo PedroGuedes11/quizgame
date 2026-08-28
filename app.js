@@ -5,7 +5,6 @@ import authRoutes from "./routes/authRoutes.js";
 import quizRoutes from "./routes/quizRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import { createTables } from "./model/db.js";
-import { profilesUploadDir } from "./middlewares/uploadMiddleware.js";
 
 dotenv.config();
 
@@ -15,7 +14,6 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(express.static("public"));
-app.use("/img/profiles", express.static(profilesUploadDir));
 
 const corsOptions = {
     origin: process.env.FRONTEND_URL || 'http://localhost:3000',

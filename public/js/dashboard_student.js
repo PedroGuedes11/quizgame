@@ -181,7 +181,7 @@ export const renderStudentDashboard = async () => {
         return;
     }
 
-    const photo = user.profile_photo ? `../img/profiles/${user.profile_photo}` : '../img/nophotouser.png';
+    const photo = user.profile_photo_url || '../img/nophotouser.png';
     const energyText = `${user.energy}/${MAX_ENERGY}`;
     const cachedPoints = (() => {
         try { return parseInt(localStorage.getItem('global_points'), 10); } catch (e) { return null; }

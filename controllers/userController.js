@@ -12,9 +12,20 @@ import {
     getLeaderboardBySubject as getLeaderboardBySubjectQuery,
     getLeaderboardQuizzesCompleted as getLeaderboardQuizzesCompletedQuery
 } from "../model/quizQueries.js";
+import {
+    deleteProfilePhoto,
+    getProfilePhotoUrl,
+    uploadProfilePhoto
+} from "../services/s3Service.js";
 
 const MAX_ENERGY = 5;
 const ENERGY_REGEN_SECONDS = 10 * 60; // 10 minutes per energy point
+
+const addProfilePhotoUrls = async (users) => {
+    await Promise.all(users.map(async (user) => {
+        user.profile_photo_url = await getProfilePhotoUrl(user.profile_photo);
+    }));
+};
 
 export const getProfile = async (req, res) => {
     try {
@@ -77,6 +88,7 @@ export const getProfile = async (req, res) => {
             };
         }
 
+        user.profile_photo_url = await getProfilePhotoUrl(user.profile_photo);
         res.json(user);
     } catch (error) {
         console.error("Get profile error:", error);
@@ -87,8 +99,9 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
     const { username, email, password } = req.body;
     const userType = req.user.type;
-    const profilePhoto = req.file ? req.file.filename : null;
-    let userId;
+    const userId = userType === "student" ? req.user.id_student : req.user.id_teacher;
+    const oldPhotoKey = req.user.profile_photo;
+    let newPhotoKey;
 
     try {
         const updates = {
@@ -100,8 +113,9 @@ export const updateProfile = async (req, res) => {
             updates.password = await bcrypt.hash(password, 10);
         }
 
-        if (profilePhoto) {
-            updates.profile_photo = profilePhoto;
+        if (req.file) {
+            newPhotoKey = await uploadProfilePhoto(req.file, userType, userId);
+            updates.profile_photo = newPhotoKey;
         }
 
         const fields = Object.keys(updates);
@@ -109,14 +123,12 @@ export const updateProfile = async (req, res) => {
         const setClause = fields.map((field, index) => `${field} = $${index + 1}`).join(', ');
 
         if (userType === "student") {
-            userId = req.user.id_student;
             values.push(userId);
             await db.query(
                 `UPDATE students SET ${setClause} WHERE id_student = $${values.length}`,
                 values
             );
         } else {
-            userId = req.user.id_teacher;
             values.push(userId);
             await db.query(
                 `UPDATE teachers SET ${setClause} WHERE id_teacher = $${values.length}`,
@@ -129,11 +141,23 @@ export const updateProfile = async (req, res) => {
             : db.query("SELECT id_teacher, username, email, profile_photo FROM teachers WHERE id_teacher = $1", [userId])
         );
 
+        if (newPhotoKey && oldPhotoKey) {
+            await deleteProfilePhoto(oldPhotoKey);
+        }
+
+        const updatedUser = updatedProfile.rows[0];
+        updatedUser.profile_photo_url = await getProfilePhotoUrl(updatedUser.profile_photo);
+
         res.json({
             message: "Perfil atualizado com sucesso.",
-            user: updatedProfile.rows[0]
+            user: updatedUser
         });
     } catch (error) {
+        if (newPhotoKey) {
+            await deleteProfilePhoto(newPhotoKey).catch((cleanupError) => {
+                console.error("Cleanup new profile photo error:", cleanupError);
+            });
+        }
         console.error("Update profile error:", error);
         if (error.code === "23505") {
             res.status(409).json({ error: "Username ou email já existe." });
@@ -190,6 +214,7 @@ export const incrementEnergy = async (req, res) => {
 export const getLeaderboardGeneral = async (req, res) => {
     try {
         const leaderboard = await getLeaderboardGeneralQuery(20);
+        await addProfilePhotoUrls(leaderboard);
         res.json(leaderboard);
     } catch (error) {
         console.error("Get leaderboard general error:", error);
@@ -215,6 +240,7 @@ export const getLeaderboardBySubject = async (req, res) => {
         }
 
         const leaderboard = await getLeaderboardBySubjectQuery(subject, 20);
+        await addProfilePhotoUrls(leaderboard);
         res.json(leaderboard);
     } catch (error) {
         console.error("Get leaderboard by subject error:", error);
@@ -225,6 +251,7 @@ export const getLeaderboardBySubject = async (req, res) => {
 export const getLeaderboardQuizzesCompleted = async (req, res) => {
     try {
         const leaderboard = await getLeaderboardQuizzesCompletedQuery(20);
+        await addProfilePhotoUrls(leaderboard);
         res.json(leaderboard);
     } catch (error) {
         console.error("Get leaderboard quizzes completed error:", error);

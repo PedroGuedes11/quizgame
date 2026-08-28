@@ -19,7 +19,7 @@ export const renderTeacherDashboard = async () => {
         return;
     }
 
-    const photo = user.profile_photo ? `../img/profiles/${user.profile_photo}` : '../img/teacher.png';
+    const photo = user.profile_photo_url || '../img/teacher.png';
 
     const html = `
         <section id="dashboard-container">

@@ -6,18 +6,21 @@
   "scripts": {
     "start": "node app.js",
     "dev": "node --watch app.js",
-    "test": "node --check app.js && node --check middlewares/uploadMiddleware.js",
+    "test": "node --check app.js && node --check middlewares/uploadMiddleware.js && node --check services/s3Service.js && node --check controllers/authController.js && node --check controllers/userController.js",
     "cleanup:quizzes": "node scripts/cleanup_old_quizzes.js --all",
     "cleanup:quizzes:before": "node scripts/cleanup_old_quizzes.js --before=YYYY-MM-DD",
-    "normalize:subjects": "node scripts/normalize_subjects.js"
+    "normalize:subjects": "node scripts/normalize_subjects.js",
+    "migrate:profile-photos": "node scripts/migrate_profile_photos_to_s3.js"
   },
   "dependencies": {
-  "multer": "^1.4.5-lts.1",
+    "@aws-sdk/client-s3": "^3.1120.0",
+    "@aws-sdk/s3-request-presigner": "^3.1120.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.0",
+    "multer": "^1.4.5-lts.1",
     "pg": "^8.20.0"
   },
   "devDependencies": {

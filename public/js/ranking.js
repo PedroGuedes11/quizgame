@@ -4,7 +4,7 @@ import { apiService } from './services/api.js';
 const DEFAULT_AVATAR = '/img/profiles/default.svg';
 
 const renderUserAvatarCell = (username, profilePhoto) => {
-    const avatar = getRankingAvatarUrl(profilePhoto);
+    const avatar = profilePhoto || DEFAULT_AVATAR;
     return `
         <div class="ranking-user-cell">
             <img
@@ -68,8 +68,10 @@ const getRankingAvatarUrl = (profilePhoto) => {
         return `/${normalized.slice('public/'.length)}`;
     }
 
-    return `/img/profiles/${normalized}`;
+    return DEFAULT_AVATAR;
 };
+
+const getRankingAvatar = (row) => row.profile_photo_url || getRankingAvatarUrl(row.profile_photo);
 
 const loadGeneralRanking = async () => {
     const content = document.querySelector('#ranking-view');
@@ -84,7 +86,7 @@ const loadGeneralRanking = async () => {
                 {
                     label: 'Aluno',
                     key: 'username',
-                    render: (row) => renderUserAvatarCell(row.username, row.profile_photo)
+                    render: (row) => renderUserAvatarCell(row.username, getRankingAvatar(row))
                 },
                 { label: 'Pontos gerais', key: 'global_points' },
                 { label: 'Quizzes completos', key: 'quizzes_completed' }
@@ -133,7 +135,7 @@ const loadSubjectRanking = async (subject) => {
                     {
                         label: 'Aluno',
                         key: 'username',
-                        render: (row) => renderUserAvatarCell(row.username, row.profile_photo)
+                        render: (row) => renderUserAvatarCell(row.username, getRankingAvatar(row))
                     },
                     { label: 'Pontos na matéria', key: 'subject_points' },
                     { label: 'Quizzes completos', key: 'quizzes_completed' }
@@ -160,7 +162,7 @@ const loadCompletedRanking = async () => {
                 {
                     label: 'Aluno',
                     key: 'username',
-                    render: (row) => renderUserAvatarCell(row.username, row.profile_photo)
+                    render: (row) => renderUserAvatarCell(row.username, getRankingAvatar(row))
                 },
                 { label: 'Quizzes concluídos', key: 'quizzes_completed' },
                 { label: 'Pontos totais', key: 'total_points' }

@@ -146,18 +146,23 @@ npm run normalize:subjects
 - `npm run cleanup:quizzes`: remove todos os quizzes e recalcula pontos globais
 - `npm run cleanup:quizzes:before`: remove quizzes criados antes de uma data específica
 - `npm run normalize:subjects`: normaliza matérias cadastradas
+- `npm run migrate:profile-photos`: migra fotos locais existentes para o S3
 
 ## Upload de imagens de perfil
 
-As imagens de perfil são salvas em `public/img/profiles` por padrão.
+As imagens de perfil são armazenadas em um bucket S3 privado. O banco salva a chave do objeto, e a API retorna uma URL pré-assinada temporária para o frontend.
 
-A pasta é ignorada no Git por meio do `.gitignore` para evitar que uploads de usuários entrem no versionamento.
+Configure estas variáveis no ambiente local e no Render:
 
-Importante para produção:
+```env
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=quizgame-profile-photos-prod
+PROFILE_URL_EXPIRES_IN=900
+AWS_ACCESS_KEY_ID=chave-do-usuario-iam
+AWS_SECRET_ACCESS_KEY=segredo-do-usuario-iam
+```
 
-- em ambiente local, o diretório pode ficar em `./public/img/profiles`
-- em Render, utilize `UPLOAD_DIR` apontando para um diretório persistente ou armazenamento externo
-- o app expõe esse diretório em `/img/profiles`
+Em produção, prefira uma IAM Role quando a infraestrutura oferecer esse recurso. Nunca versione credenciais ou coloque chaves no código.
 
 ## Deploy no Render
 
@@ -168,12 +173,16 @@ PORT=10000
 FRONTEND_URL=https://seu-frontend.com
 SECRET_KEY=sua-chave-secreta
 DATABASE_URL=postgres://<usuario>:<senha>@<host-interno>:5432/<database>?sslmode=require
-UPLOAD_DIR=/tmp/profiles
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=quizgame-profile-photos-prod
+PROFILE_URL_EXPIRES_IN=900
+AWS_ACCESS_KEY_ID=chave-do-usuario-iam
+AWS_SECRET_ACCESS_KEY=segredo-do-usuario-iam
 ```
 
 > Em Render, prefira usar `DATABASE_URL` em vez de montar a conexão manualmente com `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME`. A URL interna do Postgres do Render já inclui as credenciais e o host corretos.
 >
-> Observação: em Render, arquivos locais em disco podem não persistir entre deploys ou reinicializações sem volume persistente. Para uso real em produção, o ideal é usar um volume persistente ou um storage externo.
+> O bucket deve permanecer privado. O usuário IAM precisa ter somente `s3:PutObject`, `s3:GetObject` e `s3:DeleteObject` em `arn:aws:s3:::<bucket>/profiles/*`.
 
 ## Endpoints principais
 

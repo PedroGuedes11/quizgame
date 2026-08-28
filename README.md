@@ -155,7 +155,7 @@ As imagens de perfil são armazenadas em um bucket S3 privado. O banco salva a c
 Configure estas variáveis no ambiente local e no Render:
 
 ```env
-AWS_REGION=us-east-1
+AWS_REGION=sa-east-1
 AWS_S3_BUCKET=quizgame-profile-photos-prod
 PROFILE_URL_EXPIRES_IN=900
 AWS_ACCESS_KEY_ID=chave-do-usuario-iam
@@ -173,7 +173,7 @@ PORT=10000
 FRONTEND_URL=https://seu-frontend.com
 SECRET_KEY=sua-chave-secreta
 DATABASE_URL=postgres://<usuario>:<senha>@<host-interno>:5432/<database>?sslmode=require
-AWS_REGION=us-east-1
+AWS_REGION=sa-east-1
 AWS_S3_BUCKET=quizgame-profile-photos-prod
 PROFILE_URL_EXPIRES_IN=900
 AWS_ACCESS_KEY_ID=chave-do-usuario-iam

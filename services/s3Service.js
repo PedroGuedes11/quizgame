@@ -18,7 +18,10 @@ if (!bucket) {
     console.warn("[s3] AWS_S3_BUCKET não configurado. Uploads e URLs de fotos não funcionarão.");
 }
 
-const s3 = new S3Client({ region });
+const s3 = new S3Client({
+    region,
+    followRegionRedirects: true
+});
 
 export const uploadProfilePhoto = async (file, userType, userId) => {
     const extension = path.extname(file.originalname).toLowerCase();

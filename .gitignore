@@ -11,7 +11,3 @@ dist/
 build/
 coverage/
 public/img/profiles/
-scripts/
-!scripts/
-scripts/*
-!scripts/migrate_profile_photos_to_s3.js

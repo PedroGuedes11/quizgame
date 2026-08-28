@@ -70,7 +70,7 @@ quizgame/
 │   ├── quizRoutes.js
 │   └── userRoutes.js
 ├── scripts/
-│   ├── cleanup_old_quizzes.js
+│   ├── cleanup_quizzes_and_users.js
 │   ├── normalize_subjects.js
 │   └── wipe_all_quiz_data.js
 └── README.md
@@ -135,6 +135,7 @@ npm run dev
 npm test
 npm run cleanup:quizzes
 npm run cleanup:quizzes:before
+npm run cleanup:quizzes-and-users
 npm run normalize:subjects
 ```
 
@@ -143,10 +144,6 @@ npm run normalize:subjects
 - `npm start`: inicia a aplicação em produção
 - `npm run dev`: inicia com hot reload em desenvolvimento
 - `npm test`: valida a sintaxe do backend principal
-- `npm run cleanup:quizzes`: remove todos os quizzes e recalcula pontos globais
-- `npm run cleanup:quizzes:before`: remove quizzes criados antes de uma data específica
-- `npm run normalize:subjects`: normaliza matérias cadastradas
-- `npm run migrate:profile-photos`: migra fotos locais existentes para o S3
 
 ## Upload de imagens de perfil
 

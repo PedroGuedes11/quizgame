@@ -6,11 +6,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "node --watch app.js",
-    "test": "node --check app.js && node --check middlewares/uploadMiddleware.js && node --check services/s3Service.js && node --check controllers/authController.js && node --check controllers/userController.js",
-    "cleanup:quizzes": "node scripts/cleanup_old_quizzes.js --all",
-    "cleanup:quizzes:before": "node scripts/cleanup_old_quizzes.js --before=YYYY-MM-DD",
-    "normalize:subjects": "node scripts/normalize_subjects.js",
-    "migrate:profile-photos": "node scripts/migrate_profile_photos_to_s3.js"
+    "test": "node --check app.js && node --check middlewares/uploadMiddleware.js && node --check services/s3Service.js && node --check controllers/authController.js && node --check controllers/userController.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1120.0",
